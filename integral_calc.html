@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Guide to Integration</title>
+    <!-- Chosen Palette: Scholarly Neutrals (Dark Mode) -->
+    <!-- Application Structure Plan: The application is structured as a single-page application with tab-based navigation to create a task-oriented user experience. This is superior to the linear flow of the source report because it allows users to directly access the content they need, whether it's looking up a formula, learning a technique, or understanding a core concept. The sections are: 1. Welcome (with an interactive Riemann sum visualization), 2. Fundamentals (combining types and rules), 3. Formula Explorer (a searchable, filterable database), 4. Technique Workbench (with step-by-step interactive examples), and 5. Challenges & Applications. This structure facilitates non-linear exploration and focused learning. -->
+    <!-- Visualization & Content Choices: The core of the application is transforming static information into interactive tools. Report Info: Area under a curve -> Goal: Inform/Engage -> Viz: Interactive Riemann Sum Chart (Chart.js) -> Interaction: Slider to change the number of rectangles, demonstrating the concept of a limit. Report Info: Large static table of formulas -> Goal: Organize/Explore -> Presentation: Filterable/Searchable Grid -> Interaction: Live text search and category buttons to instantly find formulas, making the data highly accessible. Report Info: Integration techniques -> Goal: Learn/Apply -> Presentation: HTML/CSS diagrams (e.g., reference triangles, tabular method layout) and step-by-step walkthroughs -> Interaction: Click-through steps reveal the process for U-Substitution, Integration by Parts, etc., turning passive reading into active learning. CONFIRMATION: NO SVG/Mermaid used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #1a1a1a; color: #e0e0e0; }
+        .nav-button { transition: all 0.3s ease; }
+        .nav-button.active { color: #818cf8; border-color: #818cf8; background-color: #3730a3; }
+        .nav-button:not(.active):hover { background-color: #262626; border-color: #4a4a4a; }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+        .formula-card { transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; }
+        .formula-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2); }
+        .technique-step { background-color: #262626; border-left: 4px solid #a3a3a3; }
+        .tech-nav-button.active { background-color: #6366f1; color: white; }
+        .filter-btn.active { background-color: #6366f1; color: white; border-color: #6366f1; }
+        .filter-btn:not(.active) { background-color: #262626; color: #e0e0e0; border-color: #4a4a4a; }
+        .chart-container { position: relative; width: 100%; max-width: 700px; margin-left: auto; margin-right: auto; height: 300px; max-height: 40vh; background-color: #262626; border-radius: 0.75rem; }
+        @media (min-width: 768px) { .chart-container { height: 400px; } }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="min-h-screen">
+        <header class="bg-gray-800/80 backdrop-blur-md sticky top-0 z-40 border-b border-gray-700">
+            <div class="container mx-auto px-4">
+                <div class="flex flex-col sm:flex-row items-center justify-between py-4">
+                    <h1 class="text-2xl font-bold text-gray-100">Interactive Guide to Integration</h1>
+                    <nav id="main-nav" class="flex flex-wrap justify-center gap-2 sm:gap-4 mt-4 sm:mt-0">
+                        <button data-target="welcome" class="nav-button active text-sm sm:text-base font-medium px-4 py-2 rounded-lg border-b-2">Welcome</button>
+                        <button data-target="fundamentals" class="nav-button text-sm sm:text-base font-medium px-4 py-2 rounded-lg border-b-2 border-transparent">Fundamentals</button>
+                        <button data-target="explorer" class="nav-button text-sm sm:text-base font-medium px-4 py-2 rounded-lg border-b-2 border-transparent">Formula Explorer</button>
+                        <button data-target="techniques" class="nav-button text-sm sm:text-base font-medium px-4 py-2 rounded-lg border-b-2 border-transparent">Techniques</button>
+                        <button data-target="challenges" class="nav-button text-sm sm:text-base font-medium px-4 py-2 rounded-lg border-b-2 border-transparent">Challenges & Applications</button>
+                    </nav>
+                </div>
+            </div>
+        </header>
+
+        <main class="container mx-auto p-4 md:p-8">
+            
+            <section id="welcome" class="content-section active">
+                <div class="text-center bg-gray-900 p-8 rounded-xl shadow-sm border border-gray-700">
+                    <h2 class="text-3xl font-bold text-blue-400 mb-4">The Two Sides of Integration</h2>
+                    <p class="max-w-3xl mx-auto text-lg text-gray-300 mb-6">
+                        Welcome! This guide explores integral calculus, a cornerstone of mathematics. At its heart, integration has a profound duality: it's both the method for finding the <span class="font-semibold text-blue-300">area under a curve</span> and the process of finding an <span class="font-semibold text-green-400">antiderivative</span> (the reverse of differentiation). This interactive tool is designed to help you explore formulas, master techniques, and understand the power of this dual concept.
+                    </p>
+                     <p class="max-w-3xl mx-auto text-lg text-gray-300 mb-8">
+                        Below is an interactive visualization of a definite integral as the area under the curve $f(x) = x^2 + 2$. The area is approximated by summing the areas of rectangular strips. Adjust the slider to see how increasing the number of rectangles improves the accuracy of the approximation, demonstrating the core idea of the integral as a limit.
+                    </p>
+                </div>
+                
+                <div class="mt-8 bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+                    <div class="chart-container">
+                        <canvas id="riemannSumChart"></canvas>
+                    </div>
+                    <div class="mt-6 flex items-center justify-center gap-4">
+                        <label for="rectangles-slider" class="font-medium text-gray-300">Rectangles:</label>
+                        <input id="rectangles-slider" type="range" min="1" max="100" value="10" class="w-64 cursor-pointer accent-blue-500">
+                        <span id="rectangles-count" class="font-semibold text-blue-400 w-12 text-center">10</span>
+                    </div>
+                </div>
+            </section>
+
+            <section id="fundamentals" class="content-section">
+                <!-- Content generated by JS -->
+            </section>
+            
+            <section id="explorer" class="content-section">
+                <div class="bg-gray-800 p-6 rounded-xl shadow-sm mb-6 border border-gray-700">
+                    <h2 class="text-2xl font-bold text-gray-100 mb-2">Formula Explorer</h2>
+                    <p class="text-gray-300 mb-4">Search or filter through a comprehensive list of standard integral formulas. Click on a category to quickly jump to that section.</p>
+                    <div class="flex flex-col md:flex-row gap-4 mb-4">
+                        <input type="text" id="search-bar" placeholder="Search for a formula e.g., 'sin x' or '1/x'..." class="flex-grow p-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-gray-100 placeholder-gray-400">
+                        <div id="filter-buttons" class="flex flex-wrap gap-2 justify-center">
+                        </div>
+                    </div>
+                </div>
+                <div id="formula-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Formulas loaded by JS -->
+                </div>
+            </section>
+            
+            <section id="techniques" class="content-section">
+                 <div class="text-center mb-8">
+                     <h2 class="text-3xl font-bold text-gray-100">Key Integration Techniques</h2>
+                     <p class="max-w-3xl mx-auto text-lg text-gray-300 mt-2">
+                        Many integrals can't be solved with a basic formula. This section provides a workbench for learning the essential techniques used to transform complex integrals into simpler forms. Select a technique to see how it works with a step-by-step example.
+                    </p>
+                 </div>
+                 <div class="flex flex-col lg:flex-row gap-8">
+                    <div id="technique-nav" class="flex lg:flex-col flex-wrap justify-center gap-2">
+                        <!-- Tech Nav Buttons Added by JS -->
+                    </div>
+                    <div id="technique-content" class="flex-grow bg-gray-800 p-6 rounded-xl shadow-md min-h-[400px] border border-gray-700">
+                        <!-- Technique Details Added by JS -->
+                    </div>
+                 </div>
+            </section>
+
+            <section id="challenges" class="content-section">
+                <!-- Content generated by JS -->
+            </section>
+            
+        </main>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    const appData = {
+        formulas: [
+            { category: 'Polynomial & Rational', formula: '$\\int x^n \\,dx = \\frac{x^{n+1}}{n+1} + C, n \\neq -1$', keywords: 'power rule x^n' },
+            { category: 'Polynomial & Rational', formula: '$\\int k \\,dx = kx + C$', keywords: 'constant k' },
+            { category: 'Polynomial & Rational', formula: '$\\int \\frac{1}{x} \\,dx = \\ln|x| + C$', keywords: '1/x reciprocal log' },
+            { category: 'Polynomial & Rational', formula: '$\\int \\frac{1}{ax+b} \\,dx = \\frac{1}{a}\\ln|ax+b| + C$', keywords: '1/(ax+b) linear' },
+            { category: 'Polynomial & Rational', formula: '$\\int \\frac{1}{a^2+x^2} \\,dx = \\frac{1}{a} \\tan^{-1}\\left(\\frac{x}{a}\\right) + C$', keywords: '1/(a^2+x^2) arctan inverse tangent' },
+            { category: 'Polynomial & Rational', formula: '$\\int \\frac{1}{a^2-x^2} \\,dx = \\frac{1}{2a} \\ln\\left|\\frac{a+x}{a-x}\\right| + C$', keywords: '1/(a^2-x^2) log' },
+            { category: 'Exponential & Logarithmic', formula: '$\\int e^x \\,dx = e^x + C$', keywords: 'e^x exponential' },
+            { category: 'Exponential & Logarithmic', formula: '$\\int a^x \\,dx = \\frac{a^x}{\\ln a} + C$', keywords: 'a^x exponential base a' },
+            { category: 'Exponential & Logarithmic', formula: '$\\int \\ln x \\,dx = x \\ln x - x + C$', keywords: 'ln(x) log natural logarithm' },
+            { category: 'Trigonometric', formula: '$\\int \\sin x \\,dx = -\\cos x + C$', keywords: 'sin sine' },
+            { category: 'Trigonometric', formula: '$\\int \\cos x \\,dx = \\sin x + C$', keywords: 'cos cosine' },
+            { category: 'Trigonometric', formula: '$\\int \\tan x \\,dx = \\ln|\\sec x| + C$', keywords: 'tan tangent' },
+            { category: 'Trigonometric', formula: '$\\int \\sec x \\,dx = \\ln|\\sec x + \\tan x| + C$', keywords: 'sec secant' },
+            { category: 'Trigonometric', formula: '$\\int \\csc x \\,dx = \\ln|\\csc x - \\cot x| + C$', keywords: 'csc cosecant' },
+            { category: 'Trigonometric', formula: '$\\int \\cot x \\,dx = \\ln|\\sin x| + C$', keywords: 'cot cotangent' },
+            { category: 'Trigonometric', formula: '$\\int \\sec^2 x \\,dx = \\tan x + C$', keywords: 'sec^2 secant squared' },
+            { category: 'Trigonometric', formula: '$\\int \\csc^2 x \\,dx = -\\cot x + C$', keywords: 'csc^2 cosecant squared' },
+            { category: 'Trigonometric', formula: '$\\int \\sec x \\tan x \\,dx = \\sec x + C$', keywords: 'secxtanx' },
+            { category: 'Trigonometric', formula: '$\\int \\csc x \\cot x \\,dx = -\\csc x + C$', keywords: 'cscxcotx' },
+            { category: 'Inverse Trigonometric', formula: '$\\int \\frac{1}{\\sqrt{a^2-x^2}} \\,dx = \\sin^{-1}\\left(\\frac{x}{a}\\right) + C$', keywords: '1/sqrt(a^2-x^2) arcsin inverse sine' },
+            { category: 'Inverse Trigonometric', formula: '$\\int \\frac{1}{a^2+x^2} \\,dx = \\frac{1}{a}\\tan^{-1}\\left(\\frac{x}{a}\\right) + C$', keywords: '1/(a^2+x^2) arctan inverse tangent' },
+            { category: 'Inverse Trigonometric', formula: '$\\int \\frac{1}{x\\sqrt{x^2-a^2}} \\,dx = \\frac{1}{a}\\sec^{-1}\\left|\\frac{x}{a}\\right| + C$', keywords: '1/xsqrt(x^2-a^2) arcsec inverse secant' },
+            { category: 'Hyperbolic', formula: '$\\int \\sinh x \\,dx = \\cosh x + C$', keywords: 'sinh hyperbolic' },
+            { category: 'Hyperbolic', formula: '$\\int \\cosh x \\,dx = \\sinh x + C$', keywords: 'cosh hyperbolic' },
+            { category: 'Integrals with Radicals', formula: '$\\int \\sqrt{a^2-x^2} \\,dx = \\frac{x}{2}\\sqrt{a^2-x^2} + \\frac{a^2}{2}\\sin^{-1}\\frac{x}{a} + C$', keywords: 'sqrt(a^2-x^2) radical' },
+            { category: 'Integrals with Radicals', formula: '$\\int \\sqrt{x^2+a^2} \\,dx = \\frac{x}{2}\\sqrt{x^2+a^2} + \\frac{a^2}{2}\\ln|x+\\sqrt{x^2+a^2}| + C$', keywords: 'sqrt(x^2+a^2) radical' },
+            { category: 'Integrals with Radicals', formula: '$\\int \\sqrt{x^2-a^2} \\,dx = \\frac{x}{2}\\sqrt{x^2-a^2} - \\frac{a^2}{2}\\ln|x+\\sqrt{x^2-a^2}| + C$', keywords: 'sqrt(x^2-a^2) radical' },
+        ],
+        fundamentalsContent: `
+            <div class="text-center mb-10">
+                 <h2 class="text-3xl font-bold text-gray-100">The Building Blocks of Integration</h2>
+                 <p class="max-w-3xl mx-auto text-lg text-gray-300 mt-2">
+                    Integration is built upon a few core concepts and rules. Understanding the difference between definite and indefinite integrals, and mastering the fundamental rules, provides the foundation for all of calculus.
+                </p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8 mb-12">
+                <div class="bg-gray-800 p-6 rounded-xl shadow-md border-l-4 border-blue-500">
+                    <h3 class="text-2xl font-bold mb-3 text-blue-400">Indefinite Integrals</h3>
+                    <p class="text-gray-300 mb-4">An indefinite integral finds the <span class="font-semibold">family of functions</span> (the antiderivative) that, when differentiated, produce the original function. It always includes a constant of integration, 'C', because the derivative of any constant is zero.</p>
+                    <div class="bg-blue-900/30 text-blue-200 p-4 rounded-lg text-center font-mono text-lg border border-blue-700">$\\int f(x)\\,dx = F(x) + C$</div>
+                </div>
+                <div class="bg-gray-800 p-6 rounded-xl shadow-md border-l-4 border-green-500">
+                    <h3 class="text-2xl font-bold mb-3 text-green-400">Definite Integrals</h3>
+                    <p class="text-gray-300 mb-4">A definite integral calculates a <span class="font-semibold">specific numerical value</span>, which represents the accumulated total or the net area under a function's curve between two defined limits, 'a' and 'b'.</p>
+                    <div class="bg-green-900/30 text-green-200 p-4 rounded-lg text-center font-mono text-lg border border-green-700">$\\int_a^b f(x)\\,dx$</div>
+                </div>
+            </div>
+            <div class="bg-gray-800 p-8 rounded-xl shadow-lg border-t-4 border-purple-500">
+                <h3 class="text-2xl font-bold text-center mb-4 text-purple-400">The Fundamental Theorem of Calculus</h3>
+                <p class="text-center text-gray-300 mb-6 text-lg">This powerful theorem provides the bridge between indefinite and definite integrals. It states that to calculate a definite integral, you find the antiderivative $F(x)$ and evaluate it at the limits of integration.</p>
+                <div class="bg-purple-900/30 text-purple-200 p-4 rounded-lg text-center font-mono text-xl border border-purple-700">$\\int_a^b f(x)\\,dx = F(b) - F(a)$</div>
+            </div>
+             <div class="mt-12">
+                <h3 class="text-2xl font-bold text-center mb-6 text-gray-100">Core Integration Rules</h3>
+                <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="bg-gray-900 p-6 rounded-lg shadow-sm border border-gray-700">
+                        <h4 class="font-semibold text-lg mb-2 text-gray-200">Power Rule</h4>
+                        <p class="text-gray-400 mb-3">For any real number $n \\neq -1$.</p>
+                        <p class="font-mono bg-gray-700 p-3 rounded text-gray-100">$\\int x^n \\,dx = \\frac{x^{n+1}}{n+1} + C$</p>
+                    </div>
+                     <div class="bg-gray-900 p-6 rounded-lg shadow-sm border border-gray-700">
+                        <h4 class="font-semibold text-lg mb-2 text-gray-200">Constant Multiple</h4>
+                        <p class="text-gray-400 mb-3">Constants can be factored out of the integral.</p>
+                        <p class="font-mono bg-gray-700 p-3 rounded text-gray-100">$\\int c f(x) \\,dx = c \\int f(x) \\,dx$</p>
+                    </div>
+                     <div class="bg-gray-900 p-6 rounded-lg shadow-sm border border-gray-700">
+                        <h4 class="font-semibold text-lg mb-2 text-gray-200">Sum/Difference Rule</h4>
+                        <p class="text-gray-400 mb-3">Integrate term by term.</p>
+                        <p class="font-mono bg-gray-700 p-3 rounded text-gray-100">$\\int (f \\pm g) \\,dx = \\int f \\,dx \\pm \\int g \\,dx$</p>
+                    </div>
+                </div>
+            </div>
+        `,
+        techniques: {
+            'u-sub': {
+                name: 'U-Substitution',
+                description: "Also known as the reverse chain rule, this technique is used when an integral contains a function and its derivative. The goal is to simplify the integral by changing the variable.",
+                when: "Look for a composite function $f(g(x))$ where the derivative of the inner function, $g'(x)$, is also present as a factor.",
+                example: {
+                    problem: '$\\int 2x \\cos(x^2) \\,dx$',
+                    steps: [
+                        { title: '1. Identify Inner Function (u)', content: 'Let $u = x^2$. This is the "inner" part of the composite function $\\cos(x^2)$.' },
+                        { title: '2. Find the Differential (du)', content: 'Differentiate $u$ with respect to $x$: $\\frac{du}{dx} = 2x$. Rearrange to solve for $du$: $du = 2x \\,dx$.' },
+                        { title: '3. Substitute', content: 'Replace $x^2$ with $u$ and $2x\\,dx$ with $du$. The integral becomes: $\\int \\cos(u) \\,du$.' },
+                        { title: '4. Integrate with respect to u', content: 'This is now a basic integral: $\\int \\cos(u) \\,du = \\sin(u) + C$.' },
+                        { title: '5. Substitute Back', content: 'Finally, replace $u$ with the original expression $x^2$: $\\sin(x^2) + C$.' }
+                    ]
+                }
+            },
+            'by-parts': {
+                name: 'Integration by Parts',
+                description: "Used to integrate a product of two functions. It's derived from the product rule for differentiation.",
+                when: "When the integrand is a product of two functions, like a polynomial times an exponential or a log function.",
+                formula: 'The formula is $\\int u \\,dv = uv - \\int v \\,du$. The key is choosing $u$ and $dv$ correctly.',
+                heuristic: 'A good heuristic is the **ILATE** rule for choosing $u$: **I**nverse Trig, **L**ogarithmic, **A**lgebraic, **T**rigonometric, **E**xponential. Choose $u$ as the function that comes first in this list.',
+                 example: {
+                    problem: '$\\int x e^x \\,dx$',
+                    steps: [
+                        { title: '1. Choose u and dv', content: 'Using ILATE, $x$ is Algebraic (A) and $e^x$ is Exponential (E). A comes before E, so we choose $u=x$ and $dv = e^x \\,dx$.' },
+                        { title: '2. Find du and v', content: 'Differentiate $u$: $du = dx$. Integrate $dv$: $v = \\int e^x \\,dx = e^x$.' },
+                        { title: '3. Apply the Formula', content: 'Plug into $\\int u \\,dv = uv - \\int v \\,du$:<br>$x e^x - \\int e^x \\,dx$.' },
+                        { title: '4. Solve the Remaining Integral', content: 'The new integral is simple: $x e^x - e^x + C$.' }
+                    ]
+                }
+            },
+            'partial-fractions': {
+                name: 'Partial Fractions',
+                description: "This technique is used to integrate rational functions (a ratio of two polynomials). It breaks down a complex fraction into a sum of simpler fractions that are easier to integrate.",
+                when: "When you have $\\int \\frac{P(x)}{Q(x)}\\,dx$ where the degree of $P(x)$ is less than the degree of $Q(x)$ and $Q(x)$ can be factored.",
+                 example: {
+                    problem: '$\\int \\frac{1}{x^2-1} \\,dx$',
+                    steps: [
+                        { title: '1. Factor the Denominator', content: '$x^2-1 = (x-1)(x+1)$.' },
+                        { title: '2. Decompose into Partial Fractions', content: 'Set up the decomposition: $\\frac{1}{(x-1)(x+1)} = \\frac{A}{x-1} + \\frac{B}{x+1}$.' },
+                        { title: '3. Solve for Constants (A, B)', content: 'Multiply by the common denominator: $1 = A(x+1) + B(x-1)$.<br>If $x=1$, then $1 = 2A \\Rightarrow A = 1/2$.<br>If $x=-1$, then $1 = -2B \\Rightarrow B = -1/2$.'},
+                        { title: '4. Rewrite and Integrate', content: 'The integral becomes $\\int \\left( \\frac{1/2}{x-1} - \\frac{1/2}{x+1} \\right) \\,dx$.' },
+                        { title: '5. Final Answer', content: 'Integrate term by term: $\\frac{1}{2}\\ln|x-1| - \\frac{1}{2}\\ln|x+1| + C$.' }
+                    ]
+                }
+            },
+            'trig-sub': {
+                name: 'Trigonometric Substitution',
+                description: "Used for integrals containing expressions like $\\sqrt{a^2-x^2}$, $\\sqrt{a^2+x^2}$, or $\\sqrt{x^2-a^2}$. The goal is to eliminate the square root.",
+                when: "When you see a radical with a sum or difference of squares.",
+                table: `
+                    <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead><tr class="bg-gray-700 text-gray-100"><th class="p-2 border border-gray-600">Expression</th><th class="p-2 border border-gray-600">Substitution</th><th class="p-2 border border-gray-600">Identity</th></tr></thead>
+                        <tbody>
+                        <tr class="border-t border-gray-600">
+                            <td class="p-2 border border-gray-600 font-mono">$\\sqrt{a^2-x^2}$</td><td class="p-2 border border-gray-600 font-mono">$x = a\\sin\\theta$</td><td class="p-2 border border-gray-600 font-mono">$1-\\sin^2\\theta = \\cos^2\\theta$</td>
+                        </tr>
+                        <tr class="border-t border-gray-600">
+                            <td class="p-2 border border-gray-600 font-mono">$\\sqrt{a^2+x^2}$</td><td class="p-2 border border-gray-600 font-mono">$x = a\\tan\\theta$</td><td class="p-2 border border-gray-600 font-mono">$1+\\tan^2\\theta = \\sec^2\\theta$</td>
+                        </tr>
+                        <tr class="border-t border-gray-600">
+                            <td class="p-2 border border-gray-600 font-mono">$\\sqrt{x^2-a^2}$</td><td class="p-2 border border-gray-600 font-mono">$x = a\\sec\\theta$</td><td class="p-2 border border-gray-600 font-mono">$\\sec^2\\theta-1 = \\tan^2\\theta$</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    </div>
+                `,
+                 example: {
+                    problem: '$\\int \\frac{1}{\\sqrt{4-x^2}} \\,dx$',
+                    steps: [
+                        { title: '1. Identify Form and Substitute', content: 'The form is $\\sqrt{a^2-x^2}$ with $a=2$. Substitute $x = 2\\sin\\theta$. Then $dx = 2\\cos\\theta\\,d\\theta$.' },
+                        { title: '2. Simplify the Radical', content: '$\\sqrt{4-x^2} = \\sqrt{4 - 4\\sin^2\\theta} = \\sqrt{4(1-\\sin^2\\theta)} = \\sqrt{4\\cos^2\\theta} = 2\\cos\\theta$.' },
+                        { title: '3. Rewrite the Integral', content: 'Substitute into the integral: $\\int \\frac{1}{2\\cos\\theta} (2\\cos\\theta \\,d\\theta) = \\int 1 \\,d\\theta$.' },
+                        { title: '4. Integrate with respect to $\\theta$', content: '$\\int 1 \\,d\\theta = \\theta + C$.' },
+                        { title: '5. Convert Back to x', content: 'From our substitution, $x=2\\sin\\theta$, we have $\\sin\\theta = x/2$, so $\\theta = \\sin^{-1}(x/2)$. The final answer is $\\sin^{-1}(x/2) + C$.' }
+                    ]
+                }
+            }
+        },
+        challengesContent: `
+             <div class="text-center mb-10">
+                 <h2 class="text-3xl font-bold text-gray-100">Challenges & Real-World Applications</h2>
+                 <p class="max-w-3xl mx-auto text-lg text-gray-300 mt-2">
+                    Integration is a powerful tool, but it has its complexities. It's also not just an abstract concept; it's used to solve tangible problems across many fields.
+                </p>
+            </div>
+            <div class="grid lg:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="text-2xl font-semibold mb-4 text-red-400">Common Challenges</h3>
+                    <div class="space-y-4" id="challenges-accordion">
+                        <div class="bg-gray-800 rounded-lg shadow-sm border border-gray-700">
+                            <button class="w-full flex justify-between items-center text-left p-4 font-semibold accordion-header text-gray-200">
+                                <span>Functions Without Elementary Antiderivatives</span>
+                                <span class="text-xl transform transition-transform duration-300 text-gray-400">+</span>
+                            </button>
+                            <div class="accordion-content overflow-hidden max-h-0 transition-all duration-500 ease-in-out">
+                                <p class="p-4 pt-0 text-gray-400">A major challenge is that functions like $e^{-x^2}$ or $\\sin(x)/x$ do not have an antiderivative that can be expressed using elementary functions. For these, definite integrals must be approximated using numerical methods like the Trapezoid Rule or Simpson's Rule.</p>
+                            </div>
+                        </div>
+                        <div class="bg-gray-800 rounded-lg shadow-sm border border-gray-700">
+                            <button class="w-full flex justify-between items-center text-left p-4 font-semibold accordion-header text-gray-200">
+                                <span>Complex Algebraic Manipulations</span>
+                                 <span class="text-xl transform transition-transform duration-300 text-gray-400">+</span>
+                            </button>
+                            <div class="accordion-content overflow-hidden max-h-0 transition-all duration-500 ease-in-out">
+                                <p class="p-4 pt-0 text-gray-400">Many integrals require clever algebraic steps before a technique can be applied. This can include completing the square, using trigonometric identities, or polynomial long division. Recognizing the necessary manipulation is a key skill.</p>
+                            </div>
+                        </div>
+                        <div class="bg-gray-800 rounded-lg shadow-sm border border-gray-700">
+                             <button class="w-full flex justify-between items-center text-left p-4 font-semibold accordion-header text-gray-200">
+                                <span>Repeated Application of Techniques</span>
+                                 <span class="text-xl transform transition-transform duration-300 text-gray-400">+</span>
+                            </button>
+                             <div class="accordion-content overflow-hidden max-h-0 transition-all duration-500 ease-in-out">
+                                <p class="p-4 pt-0 text-gray-400">Solving a single integral might require a sequence of techniques, such as using u-substitution which then leads to an integral that requires integration by parts. The Tabular Method is a useful shortcut for repeated integration by parts to avoid errors.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                 <div>
+                    <h3 class="text-2xl font-semibold mb-4 text-green-400">Real-World Applications</h3>
+                    <div class="space-y-4" id="applications-accordion">
+                        <div class="bg-gray-800 rounded-lg shadow-sm border border-gray-700">
+                             <button class="w-full flex justify-between items-center text-left p-4 font-semibold accordion-header text-gray-200">
+                                <span>Physics & Engineering</span>
+                                <span class="text-xl transform transition-transform duration-300 text-gray-400">+</span>
+                            </button>
+                            <div class="accordion-content overflow-hidden max-h-0 transition-all duration-500 ease-in-out">
+                               <p class="p-4 pt-0 text-gray-400">Integration is used to calculate quantities like area, volume, center of mass, work done by a variable force, and fluid pressure. For example, integrating a velocity function gives the total distance traveled.</p>
+                            </div>
+                        </div>
+                        <div class="bg-gray-800 rounded-lg shadow-sm border border-gray-700">
+                            <button class="w-full flex justify-between items-center text-left p-4 font-semibold accordion-header text-gray-200">
+                                <span>Economics & Finance</span>
+                                <span class="text-xl transform transition-transform duration-300 text-gray-400">+</span>
+                            </button>
+                            <div class="accordion-content overflow-hidden max-h-0 transition-all duration-500 ease-in-out">
+                               <p class="p-4 pt-0 text-gray-400">In economics, integration helps determine consumer and producer surplus from supply and demand curves. It can also calculate the total revenue or cost from marginal revenue/cost functions.</p>
+                            </div>
+                        </div>
+                        <div class="bg-gray-800 rounded-lg shadow-sm border border-gray-700">
+                            <button class="w-full flex justify-between items-center text-left p-4 font-semibold accordion-header text-gray-200">
+                                <span>Probability & Statistics</span>
+                                <span class="text-xl transform transition-transform duration-300 text-gray-400">+</span>
+                            </button>
+                            <div class="accordion-content overflow-hidden max-h-0 transition-all duration-500 ease-in-out">
+                                <p class="p-4 pt-0 text-gray-400">The probability of a continuous random variable falling within a certain range is found by integrating its probability density function over that range. This is fundamental to statistical analysis.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `
+    };
+
+    const mainNav = document.getElementById('main-nav');
+    const sections = document.querySelectorAll('.content-section');
+    const formulaGrid = document.getElementById('formula-grid');
+    const searchBar = document.getElementById('search-bar');
+    const filterButtonsContainer = document.getElementById('filter-buttons');
+    const fundamentalsSection = document.getElementById('fundamentals');
+    const challengesSection = document.getElementById('challenges');
+    const techNavContainer = document.getElementById('technique-nav');
+    const techContentContainer = document.getElementById('technique-content');
+
+    function navigate(targetId) {
+        sections.forEach(section => {
+            section.classList.remove('active');
+            if (section.id === targetId) {
+                section.classList.add('active');
+            }
+        });
+
+        mainNav.querySelectorAll('button').forEach(button => {
+            button.classList.remove('active');
+            if (button.dataset.target === targetId) {
+                button.classList.add('active');
+            }
+        });
+
+        if (window.MathJax && window.MathJax.typeset) {
+            setTimeout(() => { window.MathJax.typeset(); }, 50);
+        }
+    }
+
+    mainNav.addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON') {
+            navigate(e.target.dataset.target);
+        }
+    });
+
+    function renderFormulas(filter = '', categoryFilter = 'All') {
+        formulaGrid.innerHTML = '';
+        const filteredFormulas = appData.formulas.filter(f => {
+            const matchesCategory = categoryFilter === 'All' || f.category === categoryFilter;
+            const matchesSearch = f.keywords.toLowerCase().includes(filter.toLowerCase()) || f.formula.toLowerCase().includes(filter.toLowerCase());
+            return matchesCategory && matchesSearch;
+        });
+
+        if (filteredFormulas.length === 0) {
+            formulaGrid.innerHTML = `<p class="text-gray-500 col-span-full text-center">No formulas found.</p>`;
+            return;
+        }
+
+        filteredFormulas.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'formula-card bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-700';
+            card.innerHTML = `
+                <h3 class="font-semibold text-blue-400 mb-3">${item.category}</h3>
+                <div class="text-lg text-gray-100">${item.formula}</div>
+            `;
+            formulaGrid.appendChild(card);
+        });
+        if (window.MathJax && window.MathJax.typeset) {
+            window.MathJax.typesetPromise([formulaGrid]);
+        }
+    }
+
+    function setupFormulaExplorer() {
+        const categories = ['All', ...new Set(appData.formulas.map(f => f.category))];
+        filterButtonsContainer.innerHTML = categories.map(cat => 
+            `<button class="filter-btn ${cat === 'All' ? 'active' : ''} px-4 py-2 text-sm font-medium border rounded-lg transition-colors" data-category="${cat}">${cat}</button>`
+        ).join('');
+        
+        filterButtonsContainer.addEventListener('click', e => {
+            if (e.target.tagName === 'BUTTON') {
+                const category = e.target.dataset.category;
+                filterButtonsContainer.querySelector('.active').classList.remove('active');
+                e.target.classList.add('active');
+                renderFormulas(searchBar.value, category);
+            }
+        });
+
+        searchBar.addEventListener('input', () => {
+            const activeCategory = filterButtonsContainer.querySelector('.active').dataset.category;
+            renderFormulas(searchBar.value, activeCategory);
+        });
+        
+        renderFormulas();
+    }
+
+    function renderTechnique(techId) {
+        const tech = appData.techniques[techId];
+        let stepsHtml = tech.example.steps.map(step => `
+            <div class="technique-step p-4 rounded-md mb-3 text-gray-300">
+                <h5 class="font-bold text-gray-100">${step.title}</h5>
+                <p class="text-gray-300 mt-1">${step.content}</p>
+            </div>
+        `).join('');
+
+        let tableHtml = tech.table ? `<div class="my-4 text-gray-300">${tech.table}</div>` : '';
+        let heuristicHtml = tech.heuristic ? `<p class="mt-2 p-3 bg-blue-900/30 text-blue-200 rounded-lg border border-blue-700"><strong>Heuristic:</strong> ${tech.heuristic}</p>` : '';
+        let formulaHtml = tech.formula ? `<div class="my-4 p-3 bg-gray-700 rounded-lg text-center font-semibold text-gray-100">${tech.formula}</div>` : '';
+
+
+        techContentContainer.innerHTML = `
+            <h3 class="text-2xl font-bold text-gray-100">${tech.name}</h3>
+            <p class="text-gray-300 mt-2">${tech.description}</p>
+            <p class="mt-2 p-3 bg-green-900/30 text-green-200 rounded-lg border border-green-700"><strong>When to use:</strong> ${tech.when}</p>
+            ${formulaHtml}
+            ${heuristicHtml}
+            ${tableHtml}
+            <h4 class="text-xl font-semibold mt-6 mb-3 text-gray-100">Example: ${tech.example.problem}</h4>
+            <div>${stepsHtml}</div>
+        `;
+
+        techNavContainer.querySelectorAll('button').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.tech === techId) {
+                btn.classList.add('active');
+            }
+        });
+
+         if (window.MathJax && window.MathJax.typeset) {
+            window.MathJax.typesetPromise([techContentContainer]);
+        }
+    }
+
+    function setupTechniques() {
+        techNavContainer.innerHTML = Object.keys(appData.techniques).map((key, index) => {
+            const tech = appData.techniques[key];
+            return `<button data-tech="${key}" class="tech-nav-button w-full lg:w-48 text-left px-4 py-3 rounded-lg font-medium transition-colors ${index === 0 ? 'active' : 'bg-gray-700 hover:bg-gray-600 text-gray-100'}">${tech.name}</button>`;
+        }).join('');
+        
+        techNavContainer.addEventListener('click', e => {
+            const button = e.target.closest('button');
+            if (button) {
+                renderTechnique(button.dataset.tech);
+            }
+        });
+
+        renderTechnique(Object.keys(appData.techniques)[0]);
+    }
+
+    function setupAccordions(containerId) {
+        const accordionContainer = document.getElementById(containerId);
+        if(!accordionContainer) return;
+        
+        const headers = accordionContainer.querySelectorAll('.accordion-header');
+        headers.forEach(header => {
+            header.addEventListener('click', () => {
+                const content = header.nextElementSibling;
+                const icon = header.querySelector('span:last-child');
+                
+                if (content.style.maxHeight) {
+                    content.style.maxHeight = null;
+                    icon.style.transform = 'rotate(0deg)';
+                } else {
+                    content.style.maxHeight = content.scrollHeight + "px";
+                    icon.style.transform = 'rotate(45deg)';
+                }
+            });
+        });
+    }
+
+    function setupRiemannChart() {
+        const ctx = document.getElementById('riemannSumChart').getContext('2d');
+        const slider = document.getElementById('rectangles-slider');
+        const countSpan = document.getElementById('rectangles-count');
+        let chart;
+
+        const func = x => x * x + 2;
+        const start = -5, end = 5;
+
+        function createChartData(numRects) {
+            const curvePoints = [];
+            for (let i = start; i <= end; i += 0.1) {
+                curvePoints.push({x: i, y: func(i)});
+            }
+
+            const barData = [];
+            const step = (end - start) / numRects;
+            for (let i = 0; i < numRects; i++) {
+                const x = start + i * step;
+                barData.push({x: x + step / 2, y: func(x)});
+            }
+            
+            const area = barData.reduce((sum, p) => sum + p.y * step, 0);
+
+            return {
+                datasets: [
+                {
+                    type: 'line',
+                    label: 'f(x) = x^2 + 2',
+                    data: curvePoints,
+                    borderColor: '#60a5fa', /* Light blue for dark mode */
+                    borderWidth: 3,
+                    pointRadius: 0,
+                    tension: 0.1,
+                    fill: false,
+                },
+                {
+                    type: 'bar',
+                    label: `Area ≈ ${area.toFixed(2)}`,
+                    backgroundColor: 'rgba(96, 165, 250, 0.3)', /* Light blue with transparency */
+                    borderColor: 'rgba(96, 165, 250, 0.6)', /* Light blue border */
+                    borderWidth: 1,
+                    barPercentage: 1.0,
+                    categoryPercentage: 1.0,
+                    data: barData
+                }]
+            };
+        }
+
+        function updateChart() {
+            const numRects = parseInt(slider.value);
+            countSpan.textContent = numRects;
+            if (chart) {
+                const newData = createChartData(numRects);
+                chart.data.datasets[1].data = newData.datasets[1].data;
+                chart.data.datasets[1].label = newData.datasets[1].label;
+                chart.update();
+            }
+        }
+        
+        chart = new Chart(ctx, {
+            data: createChartData(10),
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom',
+                        min: start,
+                        max: end,
+                        ticks: { color: '#e0e0e0' }, /* Axis labels color */
+                        grid: { color: '#4a4a4a' } /* Grid lines color */
+                    },
+                    y: { 
+                        beginAtZero: true,
+                        ticks: { color: '#e0e0e0' }, /* Axis labels color */
+                        grid: { color: '#4a4a4a' } /* Grid lines color */
+                    }
+                },
+                plugins: {
+                    tooltip: { enabled: false },
+                    legend: {
+                        labels: {
+                            font: { size: 14, color: '#e0e0e0' }, /* Legend text color */
+                            color: '#e0e0e0' /* Fallback for older Chart.js versions */
+                        }
+                    }
+                },
+                animation: { duration: 250 }
+            }
+        });
+        
+        slider.addEventListener('input', updateChart);
+    }
+    
+    fundamentalsSection.innerHTML = appData.fundamentalsContent;
+    challengesSection.innerHTML = appData.challengesContent;
+    setupFormulaExplorer();
+    setupTechniques();
+    setupAccordions('challenges-accordion');
+    setupAccordions('applications-accordion');
+    setupRiemannChart();
+    
+    navigate('welcome');
+});
+</script>
+</body>
+</html>
