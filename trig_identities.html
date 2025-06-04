@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Trigonometric Identities Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <!-- Chosen Palette: "Dark Harmony" (Dark neutrals with muted blue/teal accents) -->
+    <!-- Application Structure Plan: A single-page application with a tab-based navigation system to segment content logically into 'Fundamentals', 'Angle Transformations', 'Product & Sum', 'Inverse & Advanced', and 'AI Assistant'. This structure avoids overwhelming the user with a long scroll and promotes focused exploration. The core of the application is an interactive visualization panel that shows the derivation of selected identities from more basic ones, directly reinforcing the report's central theme of interconnectedness over rote memorization. Interactive Chart.js visualizations (Unit Circle, Graph Comparator) are included to provide tangible, visual proofs of the identities, enhancing user understanding and engagement. The new 'AI Assistant' tab provides an LLM-powered tool for on-demand explanations and simplifications. This task-oriented design is superior to a linear report-style layout for educational exploration. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Pythagorean Identity. Goal: Inform/Explore. Viz: Interactive Unit Circle (Chart.js Canvas). Interaction: User drags a point on the circle; text and formula values update in real-time. Justification: Provides a fundamental, geometric proof that is more intuitive than static text.
+        - Report Info: Double-Angle, etc. Goal: Compare/Verify. Viz: Overlapping Line Graphs (Chart.js Canvas). Interaction: User selects an identity from a dropdown; the app graphs both sides of the equation to show they are identical. Justification: Offers definitive visual confirmation of the identity's validity.
+        - Report Info: Derivations (e.g., Pythagorean variants from base). Goal: Organize/Show Relationships. Viz: HTML/CSS/JS "Derivation Tree". Interaction: Clicking an identity card highlights its parent and shows the transformation steps. Justification: Directly visualizes the report's key message about the hierarchical structure of identities.
+        - Report Info: All formulas. Goal: Inform. Viz: KaTeX-rendered formulas in styled HTML cards. Interaction: Clickable for derivations. Justification: Ensures clean, professional, and accessible display of mathematical notation.
+        - New Feature: AI Assistant. Goal: Explain/Simplify. Viz: Text input, button, and text output area. Interaction: User types a query, clicks button, AI provides explanation/simplification. Justification: Leverages LLM for dynamic, personalized learning support, directly addressing user comprehension needs.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .katex { font-size: 1.1em !important; }
+        .nav-active {
+            border-color: #0d9488; /* teal-600 */
+            color: #0d9488;
+            font-weight: 600;
+        }
+        .nav-inactive {
+            border-color: transparent;
+            color: #9ca3af; /* gray-400 for dark theme */
+        }
+        .identity-card {
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .identity-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container { height: 350px; }
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #0d9488; /* Teal */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: none; /* Hidden by default */
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-teal-500">Interactive Trigonometric Identities Explorer</h1>
+            <p class="mt-2 text-lg text-gray-300">Visually explore the relationships and derivations behind trigonometric identities.</p>
+        </header>
+
+        <nav class="flex justify-center border-b-2 border-gray-700 mb-8">
+            <button data-tab="fundamentals" class="nav-btn nav-active text-sm md:text-base py-3 px-4 md:px-6 border-b-2 transition-colors duration-300">Fundamentals</button>
+            <button data-tab="transformations" class="nav-btn nav-inactive text-sm md:text-base py-3 px-4 md:px-6 border-b-2 transition-colors duration-300">Angle Transformations</button>
+            <button data-tab="product-sum" class="nav-btn nav-inactive text-sm md:text-base py-3 px-4 md:px-6 border-b-2 transition-colors duration-300">Product & Sum</button>
+            <button data-tab="inverse-advanced" class="nav-btn nav-inactive text-sm md:text-base py-3 px-4 md:px-6 border-b-2 transition-colors duration-300">Inverse & Advanced</button>
+            <button data-tab="ai-assistant" class="nav-btn nav-inactive text-sm md:text-base py-3 px-4 md:px-6 border-b-2 transition-colors duration-300">AI Assistant</button>
+        </nav>
+
+        <main id="content-container">
+            <!-- Content will be injected by JavaScript -->
+        </main>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const identityData = {
+            fundamentals: {
+                title: "Fundamental Identities",
+                intro: "These are the foundational building blocks of trigonometry, derived directly from the definitions of the functions on the unit circle. All other identities can be built from these core principles. Click on an identity to see its origin or derivation.",
+                groups: [
+                    {
+                        name: "Reciprocal & Quotient",
+                        identities: [
+                            { id: "csc", formula: "\\csc \\theta = \\frac{1}{\\sin \\theta}", derivation: "Derived from the definition of cosecant as hypotenuse/opposite and sine as opposite/hypotenuse." },
+                            { id: "sec", formula: "\\sec \\theta = \\frac{1}{\\cos \\theta}", derivation: "Derived from the definition of secant as hypotenuse/adjacent and cosine as adjacent/hypotenuse." },
+                            { id: "cot", formula: "\\cot \\theta = \\frac{1}{\\tan \\theta}", derivation: "Derived from the definition of cotangent as adjacent/opposite and tangent as opposite/adjacent." },
+                            { id: "tan", formula: "\\tan \\theta = \\frac{\\sin \\theta}{\\cos \\theta}", derivation: "Derived by dividing sine (y/r) by cosine (x/r)." },
+                            { id: "cot_q", formula: "\\cot \\theta = \\frac{\\cos \\theta}{\\sin \\theta}", derivation: "Derived by dividing cosine (x/r) by sine (y/r)." }
+                        ],
+                        visual: 'unit-circle'
+                    },
+                    {
+                        name: "Pythagorean Identities",
+                        identities: [
+                            { id: "py_sin_cos", formula: "\\sin^2 \\theta + \\cos^2 \\theta = 1", derivation: "This is the core Pythagorean identity, derived directly from the equation of the unit circle, x² + y² = 1, where x = cos θ and y = sin θ." },
+                            { id: "py_tan_sec", formula: "1 + \\tan^2 \\theta = \\sec^2 \\theta", derivation: "Derived by dividing the core identity (sin²θ + cos²θ = 1) by cos²θ.", parent: "py_sin_cos" },
+                            { id: "py_cot_csc", formula: "1 + \\cot^2 \\theta = \\csc^2 \\theta", derivation: "Derived by dividing the core identity (sin²θ + cos²θ = 1) by sin²θ.", parent: "py_sin_cos" }
+                        ],
+                    },
+                    {
+                        name: "Even/Odd & Cofunction",
+                        identities: [
+                             { id: "sin_odd", formula: "\\sin(-\\theta) = -\\sin \\theta", derivation: "Sine is an odd function. Reflecting the angle across the x-axis negates the y-coordinate (sin θ)." },
+                             { id: "cos_even", formula: "\\cos(-\\theta) = \\cos \\theta", derivation: "Cosine is an even function. Reflecting the angle across the x-axis does not change the x-coordinate (cos θ)." },
+                             { id: "tan_odd", formula: "\\tan(-\\theta) = -\\tan \\theta", derivation: "Derived from tan(-θ) = sin(-θ) / cos(-θ).", parent: ["sin_odd", "cos_even"]},
+                             { id: "sin_co", formula: "\\sin(\\frac{\\pi}{2} - \\theta) = \\cos \\theta", derivation: "The sine of an angle is the cosine of its complement. This is clear from geometric properties of a right triangle." },
+                             { id: "cos_co", formula: "\\cos(\\frac{\\pi}{2} - \\theta) = \\sin \\theta", derivation: "The cosine of an angle is the sine of its complement." },
+                             { id: "tan_co", formula: "\\tan(\\frac{\\pi}{2} - \\theta) = \\cot \\theta", derivation: "The tangent of an angle is the cotangent of its complement." }
+                        ]
+                    }
+                ]
+            },
+            transformations: {
+                title: "Angle Transformation Identities",
+                intro: "These identities are crucial for manipulating angles within trigonometric functions. Notice the cascading effect: sum formulas lead to double-angle formulas, which in turn lead to half-angle and power-reduction formulas.",
+                groups: [
+                    {
+                        name: "Sum & Difference",
+                        identities: [
+                            { id: "sin_sum", formula: "\\sin(A + B) = \\sin A \\cos B + \\cos A \\sin B", derivation: "Geometrically derived. Forms the basis for many other transformations." },
+                            { id: "cos_sum", formula: "\\cos(A + B) = \\cos A \\cos B - \\sin A \\sin B", derivation: "Geometrically derived. Forms the basis for many other transformations." },
+                            { id: "tan_sum", formula: "\\tan(A + B) = \\frac{\\tan A + \\tan B}{1 - \\tan A \\tan B}", derivation: "Derived by dividing sin(A+B) by cos(A+B).", parent: ["sin_sum", "cos_sum"] }
+                        ],
+                        visual: 'graph-comparator'
+                    },
+                    {
+                        name: "Double-Angle",
+                        identities: [
+                            { id: "sin_2", formula: "\\sin(2\\theta) = 2\\sin\\theta\\cos\\theta", derivation: "Derived from sin(A+B) by setting A=θ and B=θ.", parent: "sin_sum" },
+                            { id: "cos_2", formula: "\\cos(2\\theta) = \\cos^2\\theta - \\sin^2\\theta", derivation: "Derived from cos(A+B) by setting A=θ and B=θ.", parent: "cos_sum"},
+                            { id: "cos_2_alt1", formula: "\\cos(2\\theta) = 2\\cos^2\\theta - 1", derivation: "Derived from cos²θ - sin²θ by substituting sin²θ = 1 - cos²θ.", parent: ["cos_2", "py_sin_cos"] },
+                            { id: "tan_2", formula: "\\tan(2\\theta) = \\frac{2\\tan\\theta}{1 - \\tan^2\\theta}", derivation: "Derived from tan(A+B) by setting A=θ and B=θ.", parent: "tan_sum" }
+                        ]
+                    },
+                    {
+                        name: "Half-Angle & Power-Reduction",
+                        identities: [
+                            { id: "sin_sq", formula: "\\sin^2\\theta = \\frac{1 - \\cos(2\\theta)}{2}", derivation: "A rearrangement of the double-angle formula cos(2θ) = 1 - 2sin²θ.", parent: "cos_2"},
+                            { id: "cos_sq", formula: "\\cos^2\\theta = \\frac{1 + \\cos(2\\theta)}{2}", derivation: "A rearrangement of the double-angle formula cos(2θ) = 2cos²θ - 1.", parent: "cos_2"},
+                            { id: "sin_half", formula: "\\sin(\\frac{\\theta}{2}) = \\pm\\sqrt{\\frac{1 - \\cos\\theta}{2}}", derivation: "Derived from the power-reduction formula for sin²θ by letting θ -> θ/2.", parent: "sin_sq" },
+                            { id: "cos_half", formula: "\\cos(\\frac{\\theta}{2}) = \\pm\\sqrt{\\frac{1 + \\cos\\theta}{2}}", derivation: "Derived from the power-reduction formula for cos²θ by letting θ -> θ/2.", parent: "cos_sq" }
+                        ]
+                    }
+                ]
+            },
+            "product-sum": {
+                title: "Product-to-Sum and Sum-to-Product",
+                intro: "These identities provide a bridge to transform expressions between products and sums. This is especially useful in calculus for simplifying integrals. Notice how they are derived from the sum and difference formulas.",
+                groups: [
+                    {
+                        name: "Product-to-Sum",
+                        identities: [
+                            { id: "ptos_sincos", formula: "\\sin A \\cos B = \\frac{1}{2}[\\sin(A+B) + \\sin(A-B)]", derivation: "Derived by adding the formulas for sin(A+B) and sin(A-B).", parent: ["sin_sum"] },
+                            { id: "ptos_coscos", formula: "\\cos A \\cos B = \\frac{1}{2}[\\cos(A+B) + \\cos(A-B)]", derivation: "Derived by adding the formulas for cos(A+B) and cos(A-B).", parent: ["cos_sum"] }
+                        ]
+                    },
+                    {
+                        name: "Sum-to-Product",
+                        identities: [
+                            { id: "stop_sinsin", formula: "\\sin A + \\sin B = 2\\sin(\\frac{A+B}{2})\\cos(\\frac{A-B}{2})", derivation: "Derived from the product-to-sum formulas by a change of variables.", parent: "ptos_sincos" },
+                            { id: "stop_coscos", formula: "\\cos A + \\cos B = 2\\cos(\\frac{A+B}{2})\\cos(\\frac{A-B}{2})", derivation: "Derived from the product-to-sum formulas by a change of variables.", parent: "ptos_coscos" }
+                        ]
+                    }
+                ]
+            },
+            "inverse-advanced": {
+                title: "Inverse & Advanced Concepts",
+                intro: "Inverse functions allow us to find angles from ratios, but require careful domain restrictions. Trigonometric identities also have profound connections to complex numbers and hyperbolic functions.",
+                groups: [
+                    {
+                        name: "Inverse Function Identities",
+                        identities: [
+                             { id: "inv_comp", formula: "\\sin^{-1}x + \\cos^{-1}x = \\frac{\\pi}{2}", derivation: "A key identity relating inverse sine and cosine, representing complementary angles." },
+                             { id: "inv_neg_cos", formula: "\\cos^{-1}(-x) = \\pi - \\cos^{-1}x", derivation: "Reflects the range of arccos, which is [0, π]." }
+                        ]
+                    },
+                    {
+                        name: "Connections to Complex Numbers",
+                        visual: 'euler-visual'
+                    }
+                ]
+            },
+            "ai-assistant": {
+                title: "AI Assistant ✨",
+                intro: "Ask the AI to explain or simplify trigonometric expressions for you!",
+                groups: [
+                    {
+                        name: "Trig Helper",
+                        content: `
+                            <div class="bg-gray-800 p-6 rounded-lg shadow-md">
+                                <label for="ai-input" class="block text-lg font-medium text-gray-200 mb-2">Enter your question or expression:</label>
+                                <textarea id="ai-input" class="w-full p-3 border border-gray-600 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 h-32 resize-y bg-gray-700 text-gray-100" placeholder="e.g., Explain sin(2x) or Simplify cos(x)^2 - sin(x)^2"></textarea>
+                                <button id="ai-submit-btn" class="mt-4 w-full bg-teal-600 text-white py-2 px-4 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition-colors duration-300">Get Explanation ✨</button>
+                                <div class="loading-spinner mt-4" id="ai-loading-spinner"></div>
+                                <div id="ai-response" class="mt-6 p-4 bg-gray-700 rounded-lg border border-gray-600 min-h-[100px] flex items-center justify-center text-gray-200">
+                                    Your AI-generated explanation will appear here.
+                                </div>
+                            </div>
+                        `
+                    }
+                ]
+            }
+        };
+
+        const graphableIdentities = {
+            "sin_2": { label: "sin(2θ) = 2sin(θ)cos(θ)", f1: (x) => Math.sin(2*x), f2: (x) => 2 * Math.sin(x) * Math.cos(x) },
+            "cos_2": { label: "cos(2θ) = cos²(θ) - sin²(θ)", f1: (x) => Math.cos(2*x), f2: (x) => Math.pow(Math.cos(x), 2) - Math.pow(Math.sin(x), 2) },
+            "cos_2_alt1": { label: "cos(2θ) = 2cos²(θ) - 1", f1: (x) => Math.cos(2*x), f2: (x) => 2 * Math.pow(Math.cos(x), 2) - 1 },
+            "sin_sq": { label: "sin²(θ) = (1 - cos(2θ))/2", f1: (x) => Math.pow(Math.sin(x), 2), f2: (x) => (1 - Math.cos(2*x))/2 }
+        };
+
+        const contentContainer = document.getElementById('content-container');
+        const navBtns = document.querySelectorAll('.nav-btn');
+        let currentChart = null;
+        let unitCircleChart = null;
+
+        function renderContent(tab) {
+            const data = identityData[tab];
+            if (!data) return;
+
+            let html = `<div id="${tab}-content" class="fade-in">`;
+            html += `<h2 class="text-2xl md:text-3xl font-bold text-center mb-2 text-teal-500">${data.title}</h2>`;
+            html += `<p class="text-gray-300 text-center max-w-3xl mx-auto mb-8">${data.intro}</p>`;
+            
+            if (tab !== 'ai-assistant') { // Only show derivation display for identity tabs
+                html += `<div id="derivation-display" class="bg-teal-900 text-teal-200 border-l-4 border-teal-500 p-4 rounded-r-lg mb-8 min-h-[80px] flex items-center justify-center text-center">Click an identity card to see its derivation.</div>`;
+            }
+
+            data.groups.forEach(group => {
+                html += `<div class="mb-10">`;
+                if(group.name) {
+                  html += `<h3 class="text-xl font-semibold mb-4 text-teal-300">${group.name}</h3>`;
+                }
+
+                if (group.visual) {
+                    html += `<div class="bg-gray-800 p-4 rounded-lg shadow-md mb-6">`;
+                    if (group.visual === 'unit-circle') {
+                        html += `
+                            <div class="chart-container"><canvas id="unitCircleCanvas"></canvas></div>
+                            <div id="unit-circle-readout" class="text-center mt-2 font-mono text-gray-200"></div>
+                        `;
+                    }
+                     if (group.visual === 'graph-comparator') {
+                        html += `
+                            <label for="graph-selector" class="block text-sm font-medium text-gray-200 mb-2">Verify an Identity:</label>
+                            <select id="graph-selector" class="w-full md:w-1/2 mx-auto p-2 border border-gray-600 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 bg-gray-700 text-gray-100">
+                                ${Object.keys(graphableIdentities).map(key => `<option value="${key}">${graphableIdentities[key].label}</option>`).join('')}
+                            </select>
+                            <div class="chart-container mt-4"><canvas id="graphCanvas"></canvas></div>
+                        `;
+                    }
+                    if (group.visual === 'euler-visual') {
+                        html += `
+                            <h3 class="text-xl font-semibold mb-4 text-teal-300">Euler's Formula: The Bridge to Complex Numbers</h3>
+                            <p class="mb-4 text-gray-300">Euler's formula, <span class="katex-euler"></span>, connects trigonometric functions to complex exponentials. It reveals that sine and cosine are not just about triangles, but are fundamental components of circular motion in the complex plane.</p>
+                            <div class="text-center font-mono p-4 bg-gray-700 rounded-lg text-gray-200">
+                                <span class="katex-cos-def"></span><br/><span class="katex-sin-def"></span>
+                            </div>
+                            <p class="mt-4 text-gray-300">This connection allows for elegant proofs of many identities by simply manipulating exponentials.</p>
+                        `;
+                    }
+                    html += `</div>`;
+                }
+                
+                if (group.content) { // For AI Assistant tab
+                    html += group.content;
+                }
+
+                if (group.identities) {
+                    html += `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">`;
+                    group.identities.forEach(identity => {
+                        html += `
+                            <div id="card-${identity.id}" class="identity-card bg-gray-800 p-6 rounded-lg shadow-md" data-id="${identity.id}" data-derivation="${identity.derivation}" data-parent="${identity.parent || ''}">
+                                <div class="formula-display"></div>
+                            </div>
+                        `;
+                    });
+                    html += `</div>`;
+                }
+                
+                html += `</div>`;
+            });
+            
+            html += `</div>`;
+            contentContainer.innerHTML = html;
+            renderAllFormulas();
+            attachCardListeners();
+
+            if (document.getElementById('unitCircleCanvas')) createUnitCircle();
+            if (document.getElementById('graphCanvas')) {
+                createGraphComparator();
+                document.getElementById('graph-selector').addEventListener('change', createGraphComparator);
+            }
+            if (tab === 'ai-assistant') {
+                document.getElementById('ai-submit-btn').addEventListener('click', handleAiRequest);
+            }
+        }
+
+        function renderAllFormulas() {
+            document.querySelectorAll('.formula-display').forEach(el => {
+                const card = el.closest('.identity-card');
+                const identityId = card.dataset.id;
+                const identity = findIdentityById(identityId); // Get the whole identity object
+                if (identity && identity.formula) { // Check if identity and its formula exist
+                    katex.render(identity.formula, el, { throwOnError: false, displayMode: true });
+                } else {
+                    console.error(`Formula not found for identity ID: ${identityId}`);
+                }
+            });
+            
+            const eulerEl = document.querySelector('.katex-euler');
+            if (eulerEl) {
+                katex.render("e^{i\\theta} = \\cos\\theta + i\\sin\\theta", eulerEl, { throwOnError: false });
+            }
+            const cosDefEl = document.querySelector('.katex-cos-def');
+            if (cosDefEl) {
+                katex.render("\\cos\\theta = \\frac{e^{i\\theta} + e^{-i\\theta}}{2}", cosDefEl, { throwOnError: false });
+            }
+            const sinDefEl = document.querySelector('.katex-sin-def');
+            if (sinDefEl) {
+                katex.render("\\sin\\theta = \\frac{e^{i\\theta} - e^{-i\\theta}}{2i}", sinDefEl, { throwOnError: false });
+            }
+        }
+        
+        function findIdentityById(id) {
+            for (const section of Object.values(identityData)) {
+                for (const group of section.groups) {
+                    if (group.identities) {
+                       const found = group.identities.find(identity => identity.id === id);
+                       if (found) return found;
+                    }
+                }
+            }
+            return null;
+        }
+
+        function attachCardListeners() {
+            document.querySelectorAll('.identity-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const derivation = card.dataset.derivation;
+                    const parentIds = card.dataset.parent.split(',');
+                    const display = document.getElementById('derivation-display');
+                    
+                    document.querySelectorAll('.identity-card').forEach(c => c.classList.remove('ring-2', 'ring-offset-2', 'ring-teal-500', 'ring-blue-500'));
+                    
+                    card.classList.add('ring-2', 'ring-offset-2', 'ring-teal-500');
+                    display.innerHTML = derivation;
+                    
+                    parentIds.forEach(parentId => {
+                        if (parentId) {
+                            const parentCard = document.getElementById(`card-${parentId}`);
+                            if (parentCard) parentCard.classList.add('ring-2', 'ring-offset-2', 'ring-blue-500');
+                        }
+                    });
+                });
+            });
+        }
+        
+        function createUnitCircle() {
+            const canvas = document.getElementById('unitCircleCanvas');
+            const readout = document.getElementById('unit-circle-readout');
+            const ctx = canvas.getContext('2d');
+            
+            if (unitCircleChart) unitCircleChart.destroy();
+            
+            const data = {
+                datasets: [{
+                    label: 'Point on Circle',
+                    data: [{ x: Math.cos(0.7), y: Math.sin(0.7) }],
+                    backgroundColor: '#ef4444', // red-500
+                    pointRadius: 8,
+                    pointHoverRadius: 10
+                }, {
+                    label: 'Unit Circle',
+                    data: Array.from({length: 101}, (_, i) => ({
+                        x: Math.cos(i * 2 * Math.PI / 100),
+                        y: Math.sin(i * 2 * Math.PI / 100)
+                    })),
+                    borderColor: '#6b7280', // gray-500
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    showLine: true,
+                    type: 'scatter',
+                    fill: false
+                }, {
+                    label: 'Reference Lines',
+                    data: [{x: 0, y: 0}, {x: Math.cos(0.7), y: Math.sin(0.7)}, {x: Math.cos(0.7), y: 0}],
+                    borderColor: '#0d9488', // teal-600
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    showLine: true,
+                    type: 'scatter'
+                }]
+            };
+
+            const options = {
+                maintainAspectRatio: false,
+                scales: {
+                    x: { min: -1.5, max: 1.5, grid: { drawOnChartArea: false }, ticks: { display: false } },
+                    y: { min: -1.5, max: 1.5, grid: { drawOnChartArea: false }, ticks: { display: false } }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: false }
+                },
+                animation: false
+            };
+            
+            unitCircleChart = new Chart(ctx, { type: 'scatter', data, options });
+            
+            function updateReadout(angle) {
+                const cosT = Math.cos(angle).toFixed(3);
+                const sinT = Math.sin(angle).toFixed(3);
+                const sumSq = (Math.pow(sinT, 2) + Math.pow(cosT, 2)).toFixed(3);
+                readout.innerHTML = `θ ≈ ${(angle * 180 / Math.PI).toFixed(1)}° | cos θ = ${cosT} | sin θ = ${sinT} <br> sin²θ + cos²θ = ${sinT**2} + ${cosT**2} = ${sumSq}`;
+            }
+
+            updateReadout(0.7);
+
+            let isDragging = false;
+            canvas.addEventListener('mousedown', () => isDragging = true);
+            canvas.addEventListener('mouseup', () => isDragging = false);
+            canvas.addEventListener('mouseleave', () => isDragging = false);
+
+            canvas.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const chartArea = unitCircleChart.chartArea;
+                const scaleX = unitCircleChart.scales.x;
+                const scaleY = unitCircleChart.scales.y;
+                const chartX = scaleX.getValueForPixel(x);
+                const chartY = scaleY.getValueForPixel(y);
+                const angle = Math.atan2(chartY, chartX);
+
+                unitCircleChart.data.datasets[0].data[0] = { x: Math.cos(angle), y: Math.sin(angle) };
+                unitCircleChart.data.datasets[2].data = [{x: 0, y: 0}, {x: Math.cos(angle), y: Math.sin(angle)}, {x: Math.cos(angle), y: 0}];
+                unitCircleChart.update();
+                updateReadout(angle);
+            });
+        }
+        
+        function createGraphComparator() {
+            const selector = document.getElementById('graph-selector');
+            const selectedKey = selector.value;
+            const identity = graphableIdentities[selectedKey];
+            const canvas = document.getElementById('graphCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            if (currentChart) currentChart.destroy();
+            
+            const labels = [];
+            const data1 = [];
+            const data2 = [];
+            for (let i = -2 * Math.PI; i <= 2 * Math.PI; i += (4 * Math.PI / 200)) {
+                labels.push(i.toFixed(2));
+                data1.push(identity.f1(i));
+                data2.push(identity.f2(i));
+            }
+
+            currentChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'LHS',
+                        data: data1,
+                        borderColor: '#ef4444', // red-500
+                        borderWidth: 4,
+                        pointRadius: 0,
+                        fill: false
+                    }, {
+                        label: 'RHS',
+                        data: data2,
+                        borderColor: '#3b82f6', // blue-500
+                        borderDash: [5, 5],
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        fill: false
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: false, min: -2, max: 2 },
+                        x: { ticks: { maxTicksLimit: 7 } }
+                    },
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                }
+            });
+        }
+
+        async function handleAiRequest() {
+            const inputElement = document.getElementById('ai-input');
+            const responseElement = document.getElementById('ai-response');
+            const spinnerElement = document.getElementById('ai-loading-spinner');
+            const prompt = inputElement.value.trim();
+
+            if (!prompt) {
+                responseElement.innerHTML = '<p class="text-red-500">Please enter a question or expression.</p>';
+                return;
+            }
+
+            responseElement.innerHTML = ''; // Clear previous response
+            spinnerElement.style.display = 'block'; // Show spinner
+
+            try {
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: `You are an expert in trigonometry. The user will provide a trigonometric expression or a question about trigonometric identities. Your task is to explain the expression, simplify it, or answer the question concisely and accurately. Use correct mathematical notation where appropriate. If asked to simplify, provide the simplified form and the steps. If asked to explain, provide a clear explanation. Keep the response focused on trigonometry.\n\nUser Query: ${prompt}` }] });
+                const payload = { contents: chatHistory };
+                const apiKey = ""; // If you want to use models other than gemini-2.0-flash or imagen-3.0-generate-002, provide an API key here. Otherwise, leave this as-is.
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    // Render the response using KaTeX
+                    try {
+                        // Replace common markdown math delimiters with KaTeX delimiters
+                        // This regex is more robust for finding $...$ and $$...$$
+                        const formattedText = text.replace(/\$\$(.*?)\$\$/gs, (match, p1) => `<div class="block-math">${p1}</div>`)
+                                                .replace(/\$(.*?)\$/g, (match, p1) => `<span class="inline-math">${p1}</span>`);
+                        
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = formattedText;
+                        
+                        // Find all KaTeX elements and render them
+                        tempDiv.querySelectorAll('.inline-math').forEach(span => {
+                            try {
+                                katex.render(span.textContent, span, { throwOnError: false, displayMode: false });
+                            } catch (e) {
+                                console.error("KaTeX inline render error:", e, "Text:", span.textContent);
+                                span.outerHTML = `$${span.textContent}$`; // Fallback to plain text with original delimiters
+                            }
+                        });
+                        tempDiv.querySelectorAll('.block-math').forEach(div => {
+                            try {
+                                katex.render(div.textContent, div, { throwOnError: false, displayMode: true });
+                            } catch (e) {
+                                console.error("KaTeX block render error:", e, "Text:", div.textContent);
+                                div.outerHTML = `$$${div.textContent}$$`; // Fallback to plain text with original delimiters
+                            }
+                        });
+                        
+                        responseElement.innerHTML = '';
+                        responseElement.appendChild(tempDiv);
+
+                    } catch (e) {
+                        console.error("Error rendering KaTeX for AI response:", e);
+                        responseElement.innerHTML = `<p>${text}</p>`; // Fallback to plain text
+                    }
+                } else {
+                    responseElement.innerHTML = '<p class="text-red-500">Could not get a valid response from the AI. Please try again.</p>';
+                }
+            } catch (error) {
+                console.error('Error calling Gemini API:', error);
+                responseElement.innerHTML = '<p class="text-red-500">An error occurred while connecting to the AI. Please check your network and try again.</p>';
+            } finally {
+                spinnerElement.style.display = 'none'; // Hide spinner
+            }
+        }
+
+        navBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                navBtns.forEach(b => b.classList.replace('nav-active', 'nav-inactive'));
+                btn.classList.replace('nav-inactive', 'nav-active');
+                renderContent(btn.dataset.tab);
+            });
+        });
+        
+        // Initial render
+        renderContent('fundamentals');
+    });
+    </script>
+</body>
+</html>
