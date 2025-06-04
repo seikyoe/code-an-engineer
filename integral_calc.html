@@ -10,6 +10,34 @@
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- MathJax Configuration -->
+    <script>
+      window.MathJax = {
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          displayMath: [['$$', '$$'], ['\\[', '\\]']]
+        },
+        startup: {
+          ready: () => {
+            console.log('MathJax is ready.');
+            MathJax.startup.defaultReady();
+            // Typeset the initially active section once MathJax is loaded
+            // This handles cases where MathJax loads after initial content is displayed
+            const activeNavButton = document.querySelector('#main-nav button.active');
+            if (activeNavButton) {
+              const targetId = activeNavButton.dataset.target;
+              const activeSectionElement = document.getElementById(targetId);
+              if (activeSectionElement) {
+                MathJax.typesetPromise([activeSectionElement]).catch(err => console.error(`MathJax initial typeset for ${targetId} error:`, err));
+              }
+            }
+          }
+        },
+        svg: {
+          fontCache: 'global' // Recommended for better performance
+        }
+      };
+    </script>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
@@ -376,8 +404,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        if (window.MathJax && window.MathJax.typeset) {
-            setTimeout(() => { window.MathJax.typeset(); }, 50);
+        const activeSection = document.getElementById(targetId);
+        if (activeSection) {
+            // Defer typesetting to the next microtask queue to ensure DOM is updated (e.g., visibility changes).
+            Promise.resolve().then(() => {
+                if (window.MathJax && window.MathJax.typesetPromise) {
+                    // console.log(`Navigating to ${targetId}, attempting to typeset.`);
+                    window.MathJax.typesetPromise([activeSection])
+                        .catch(err => console.error(`MathJax typesetPromise error in navigate for ${targetId}:`, err));
+                } else {
+                    // console.log(`Navigating to ${targetId}, MathJax not ready for typesetting.`);
+                }
+            });
         }
     }
 
@@ -409,7 +447,8 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             formulaGrid.appendChild(card);
         });
-        if (window.MathJax && window.MathJax.typeset) {
+        // Ensure MathJax processes the newly added formulas if it's ready
+        if (window.MathJax && window.MathJax.typesetPromise) {
             window.MathJax.typesetPromise([formulaGrid]);
         }
     }
@@ -469,7 +508,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-         if (window.MathJax && window.MathJax.typeset) {
+        // Ensure MathJax processes the newly added technique content if it's ready
+         if (window.MathJax && window.MathJax.typesetPromise) {
             window.MathJax.typesetPromise([techContentContainer]);
         }
     }
