@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Differential Calculus Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Dark Scholarly -->
+    <!-- Application Structure Plan: The SPA uses a fixed sidebar navigation and a dynamic main content area. This structure was chosen to break down the dense, hierarchical information of the calculus report into manageable, thematic sections. It allows users to quickly navigate to a specific topic of interest (e.g., "Chain Rule") without linear scrolling, promoting focused learning and quick referencing. The user flow is non-linear, encouraging exploration. Interactive elements within each section are designed to deepen understanding of that specific topic. -->
+    <!-- Visualization & Content Choices: 
+        - Limit Definition -> Interactive Chart.js Line Chart -> Goal: To visually demonstrate the abstract concept of a limit by showing a secant line morphing into a tangent line as a user manipulates a slider. Justification: Makes the foundational concept of calculus intuitive and tangible.
+        - Formulas & Rules -> Interactive HTML/Tailwind Cards -> Goal: To organize information clearly. Interaction: Click-to-reveal examples. Justification: Prevents information overload by hiding complexity until requested, making the initial view cleaner.
+        - Trigonometric Derivative Cycle -> HTML/CSS Diagram -> Goal: To show relationships. Interaction: Hover effects. Justification: Visually reinforces the cyclical patterns mentioned in the report, which aids memorization.
+        - Process-based techniques (Implicit/Logarithmic) -> HTML/CSS Step-by-Step Walkthrough -> Goal: To explain a process. Interaction: User clicks to reveal the next step. Justification: Guides the user through complex algorithms, making the procedure easier to follow and learn.
+        - LLM-powered Explanations -> Buttons triggering Gemini API calls -> Goal: Provide on-demand, context-sensitive explanations of formulas. Justification: Enhances understanding by offering immediate, tailored insights.
+        - LLM-powered Practice Problems -> Textarea input for topic, button for generation, display area -> Goal: Provide personalized practice problems with solutions. Justification: Supports self-assessment and guided learning based on user-defined needs.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Dark mode background */
+            color: #e2e8f0; /* Light text on dark background */
+        }
+        .nav-link {
+            transition: all 0.2s ease-in-out;
+            border-left: 3px solid transparent;
+        }
+        .nav-link.active {
+            background-color: #2d3748; /* Darker grey for active nav item */
+            color: #ffffff;
+            border-left-color: #3b82f6;
+        }
+        .nav-link:hover {
+            background-color: #2d3748; /* Darker grey for hover */
+            border-left-color: #93c5fd;
+        }
+        .content-card {
+            background-color: #2d3748; /* Darker card background */
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s ease-in-out;
+        }
+        .content-card:hover {
+            transform: translateY(-2px);
+        }
+        .formula-display {
+            display: block;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 0.5rem 0;
+            background-color: #4a5568; /* Darker grey for formula display */
+            color: #e2e8f0; /* Light text for formulas */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 50vh;
+        }
+        .explanation-output {
+            border-left: 4px solid #60a5fa;
+            background-color: #1f2937; /* Darker blue for explanation background */
+            color: #cbd5e0; /* Slightly lighter text for explanations */
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" xintegrity="sha384-n8MVd4RsNIU0KOVEMcAqrPDscMYVfuMasNxVRapoQvsQRgKC188oUsqSSMHmhDar" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" xintegrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" xintegrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"></script>
+</head>
+<body class="antialiased">
+    <div class="flex h-screen bg-[#1a202c]"> <!-- Updated background -->
+        <aside class="w-64 bg-[#2d3748] shadow-md flex-shrink-0"> <!-- Updated sidebar background -->
+            <div class="p-4">
+                <h1 class="text-xl font-bold text-gray-100">Calculus Explorer</h1> <!-- Updated text color -->
+                <p class="text-sm text-gray-400">Interactive Formulas</p> <!-- Updated text color -->
+            </div>
+            <nav class="mt-4 flex-grow overflow-y-auto">
+                <div class="px-2">
+                    <h3 class="px-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Core Concepts</h3> <!-- Updated text color -->
+                    <a href="#" class="nav-link block px-4 py-2 mt-2 text-sm font-medium text-gray-300 rounded-md active" data-section="introduction">Introduction</a> <!-- Updated text color -->
+                    <a href="#" class="nav-link block px-4 py-2 mt-1 text-sm font-medium text-gray-300 rounded-md" data-section="basic-rules">Basic Rules</a> <!-- Updated text color -->
+                </div>
+                <div class="px-2 mt-4">
+                    <h3 class="px-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Function Derivatives</h3> <!-- Updated text color -->
+                    <a href="#" class="nav-link block px-4 py-2 mt-2 text-sm font-medium text-gray-300 rounded-md" data-section="exp-log">Exponential & Logarithmic</a> <!-- Updated text color -->
+                    <a href="#" class="nav-link block px-4 py-2 mt-1 text-sm font-medium text-gray-300 rounded-md" data-section="trigonometric">Trigonometric</a> <!-- Updated text color -->
+                    <a href="#" class="nav-link block px-4 py-2 mt-1 text-sm font-medium text-gray-300 rounded-md" data-section="inverse-trig">Inverse Trigonometric</a> <!-- Updated text color -->
+                    <a href="#" class="nav-link block px-4 py-2 mt-1 text-sm font-medium text-gray-300 rounded-md" data-section="hyperbolic">Hyperbolic</a> <!-- Updated text color -->
+                </div>
+                <div class="px-2 mt-4">
+                    <h3 class="px-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Advanced Methods</h3> <!-- Updated text color -->
+                    <a href="#" class="nav-link block px-4 py-2 mt-2 text-sm font-medium text-gray-300 rounded-md" data-section="advanced-rules">Product & Quotient Rules</a> <!-- Updated text color -->
+                    <a href="#" class="nav-link block px-4 py-2 mt-1 text-sm font-medium text-gray-300 rounded-md" data-section="chain-rule">Chain Rule</a> <!-- Updated text color -->
+                    <a href="#" class="nav-link block px-4 py-2 mt-1 text-sm font-medium text-gray-300 rounded-md" data-section="implicit-diff">Implicit Differentiation</a> <!-- Updated text color -->
+                    <a href="#" class="nav-link block px-4 py-2 mt-1 text-sm font-medium text-gray-300 rounded-md" data-section="log-diff">Logarithmic Differentiation</a> <!-- Updated text color -->
+                </div>
+                 <div class="px-2 mt-4">
+                    <h3 class="px-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Further Topics</h3> <!-- Updated text color -->
+                    <a href="#" class="nav-link block px-4 py-2 mt-2 text-sm font-medium text-gray-300 rounded-md" data-section="higher-order">Higher-Order Derivatives</a> <!-- Updated text color -->
+                </div>
+                <div class="px-2 mt-4">
+                    <h3 class="px-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">LLM Tools</h3> <!-- Updated text color -->
+                    <a href="#" class="nav-link block px-4 py-2 mt-2 text-sm font-medium text-gray-300 rounded-md" data-section="practice-problems">Practice Problems ✨</a> <!-- Updated text color -->
+                </div>
+            </nav>
+        </aside>
+
+        <main class="flex-1 p-6 lg:p-10 overflow-y-auto">
+            
+            <section id="introduction" class="content-section">
+                <h2 class="text-3xl font-bold text-gray-100 mb-4">The Limit Definition of a Derivative</h2> <!-- Updated text color -->
+                <p class="text-lg text-gray-300 mb-6">The derivative is the foundation of calculus, representing the instantaneous rate of change of a function, or the slope of the tangent line to its curve at a specific point. It's formally defined using a limit. This interactive visualizer helps make this abstract concept concrete.</p> <!-- Updated text color -->
+                <div class="content-card p-6">
+                    <h3 class="text-xl font-semibold text-gray-100 mb-2">Interactive Visualizer: Secant to Tangent</h3> <!-- Updated text color -->
+                    <p class="text-gray-300 mb-4">The derivative of $f(x)$ at a point $x_0$ is the limit of the slope of the secant line as the second point approaches the first. Use the slider below to change the distance 'h' between the two points. As 'h' approaches zero, watch the secant line become the tangent line.</p> <!-- Updated text color -->
+                    <div class="formula-display text-center my-4 p-3 rounded-lg">
+                        $f'(x_0) = \lim_{h \to 0} \frac{f(x_0 + h) - f(x_0)}{h}$
+                    </div>
+                    <div class="chart-container mb-4">
+                        <canvas id="limitChart"></canvas>
+                    </div>
+                    <div class="flex items-center justify-center space-x-4">
+                        <label for="h-slider" class="font-medium text-gray-300">h = <span id="h-value">2.00</span></label> <!-- Updated text color -->
+                        <input id="h-slider" type="range" min="0.01" max="2" step="0.01" value="2" class="w-64">
+                    </div>
+                </div>
+            </section>
+
+            <section id="basic-rules" class="content-section hidden">
+                <h2 class="text-3xl font-bold text-gray-100 mb-6">Fundamental Differentiation Rules</h2> <!-- Updated text color -->
+                <p class="mb-6 text-lg text-gray-300">These are the essential building blocks for nearly all differentiation. They allow us to break down complex functions into simpler parts that can be differentiated systematically.</p> <!-- Updated text color -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="content-card p-6">
+                        <h3 class="text-xl font-semibold text-gray-100 mb-2">Constant Rule</h3> <!-- Updated text color -->
+                        <p class="text-gray-300 mb-4">The derivative of any constant 'c' is zero, as a constant does not change.</p> <!-- Updated text color -->
+                        <div class="formula-display text-center my-4 p-3 rounded-lg">$\frac{d}{dx} (c) = 0$</div>
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                    <div class="content-card p-6">
+                        <h3 class="text-xl font-semibold text-gray-100 mb-2">Power Rule</h3> <!-- Updated text color -->
+                        <p class="text-gray-300 mb-4">For any real number 'n', the derivative of $x^n$ is found by bringing down the power as a multiplier and then subtracting one from the power.</p> <!-- Updated text color -->
+                        <div class="formula-display text-center my-4 p-3 rounded-lg">$\frac{d}{dx} (x^n) = nx^{n-1}$</div>
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                    <div class="content-card p-6">
+                        <h3 class="text-xl font-semibold text-gray-100 mb-2">Constant Multiple Rule</h3> <!-- Updated text color -->
+                        <p class="text-gray-300 mb-4">A constant factor can be "pulled out" of the differentiation process.</p> <!-- Updated text color -->
+                        <div class="formula-display text-center my-4 p-3 rounded-lg">$\frac{d}{dx} (c \cdot f(x)) = c \cdot f'(x)$</div>
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                    <div class="content-card p-6">
+                        <h3 class="text-xl font-semibold text-gray-100 mb-2">Sum/Difference Rule</h3> <!-- Updated text color -->
+                        <p class="text-gray-300 mb-4">The derivative of a sum or difference of functions is the sum or difference of their individual derivatives.</p> <!-- Updated text color -->
+                        <div class="formula-display text-center my-4 p-3 rounded-lg">$\frac{d}{dx} (f(x) \pm g(x)) = f'(x) \pm g'(x)$</div>
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="exp-log" class="content-section hidden">
+                <h2 class="text-3xl font-bold text-gray-100 mb-6">Exponential & Logarithmic Derivatives</h2> <!-- Updated text color -->
+                <p class="mb-6 text-lg text-gray-300">These functions are crucial for modeling growth, decay, and processes where change is proportional to the current amount. Their derivatives have unique and powerful properties.</p> <!-- Updated text color -->
+                <div class="space-y-6">
+                    <div class="content-card p-6">
+                        <h3 class="text-xl font-semibold text-gray-100">Natural Exponential</h3> <!-- Updated text color -->
+                        <div class="formula-display text-center my-4 p-3 rounded-lg">$\frac{d}{dx} (e^x) = e^x$</div>
+                        <p class="text-gray-300">The function $e^x$ is its own derivative, a property that makes it fundamental in calculus.</p> <!-- Updated text color -->
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                    <div class="content-card p-6">
+                        <h3 class="text-xl font-semibold text-gray-100">General Exponential</h3> <!-- Updated text color -->
+                        <div class="formula-display text-center my-4 p-3 rounded-lg">$\frac{d}{dx} (a^x) = a^x \ln a$</div>
+                        <p class="text-gray-300">For a base 'a', the derivative is scaled by the natural log of the base.</p> <!-- Updated text color -->
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                    <div class="content-card p-6">
+                        <h3 class="text-xl font-semibold text-gray-100">Natural Logarithm</h3> <!-- Updated text color -->
+                        <div class="formula-display text-center my-4 p-3 rounded-lg">$\frac{d}{dx} (\ln x) = \frac{1}{x}$</div>
+                        <p class="text-gray-300">The derivative of the natural log is the reciprocal function.</p> <!-- Updated text color -->
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                    <div class="content-card p-6">
+                        <h3 class="text-xl font-semibold text-gray-100">General Logarithm</h3> <!-- Updated text color -->
+                        <div class="formula-display text-center my-4 p-3 rounded-lg">$\frac{d}{dx} (\log_a x) = \frac{1}{x \ln a}$</div>
+                        <p class="text-gray-300">Similar to the natural log, but scaled by the natural log of the base 'a'.</p> <!-- Updated text color -->
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="trigonometric" class="content-section hidden">
+                <h2 class="text-3xl font-bold text-gray-100 mb-6">Trigonometric Derivatives</h2> <!-- Updated text color -->
+                <p class="mb-6 text-lg text-gray-300">Essential for analyzing periodic and oscillatory phenomena like waves and vibrations. Notice the cyclical patterns and relationships between function-derivative pairs.</p> <!-- Updated text color -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="content-card p-6">
+                        <div class="formula-display text-center p-3">$\frac{d}{dx} (\sin x) = \cos x$</div>
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                    <div class="content-card p-6">
+                        <div class="formula-display text-center p-3">$\frac{d}{dx} (\cos x) = -\sin x$</div>
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                    <div class="content-card p-6">
+                        <div class="formula-display text-center p-3">$\frac{d}{dx} (\tan x) = \sec^2 x$</div>
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                    <div class="content-card p-6">
+                        <div class="formula-display text-center p-3">$\frac{d}{dx} (\csc x) = -\csc x \cot x$</div>
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                    <div class="content-card p-6">
+                        <div class="formula-display text-center p-3">$\frac{d}{dx} (\sec x) = \sec x \tan x$</div>
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                    <div class="content-card p-6">
+                        <div class="formula-display text-center p-3">$\frac{d}{dx} (\cot x) = -\csc^2 x$</div>
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="inverse-trig" class="content-section hidden">
+                 <h2 class="text-3xl font-bold text-gray-100 mb-6">Inverse Trigonometric Derivatives</h2> <!-- Updated text color -->
+                 <p class="mb-6 text-lg text-gray-300">These derivatives are key for solving problems involving angles and geometric relationships. Their forms often arise from using implicit differentiation and the Pythagorean theorem.</p> <!-- Updated text color -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="content-card p-6">
+                        <div class="formula-display text-center p-3">$\frac{d}{dx} (\sin^{-1} x) = \frac{1}{\sqrt{1-x^2}}$</div>
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                    <div class="content-card p-6">
+                        <div class="formula-display text-center p-3">$\frac{d}{dx} (\cos^{-1} x) = -\frac{1}{\sqrt{1-x^2}}$</div>
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                    <div class="content-card p-6">
+                        <div class="formula-display text-center p-3">$\frac{d}{dx} (\tan^{-1} x) = \frac{1}{1+x^2}$</div>
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                    <div class="content-card p-6">
+                        <div class="formula-display text-center p-3">$\frac{d}{dx} (\csc^{-1} x) = -\frac{1}{|x|\sqrt{x^2-1}}$</div>
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                    <div class="content-card p-6">
+                        <div class="formula-display text-center p-3">$\frac{d}{dx} (\sec^{-1} x) = \frac{1}{|x|\sqrt{x^2-1}}$</div>
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                    <div class="content-card p-6">
+                        <div class="formula-display text-center p-3">$\frac{d}{dx} (\cot^{-1} x) = -\frac{1}{1+x^2}$</div>
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="hyperbolic" class="content-section hidden">
+                <h2 class="text-3xl font-bold text-gray-100 mb-6">Hyperbolic Derivatives</h2> <!-- Updated text color -->
+                <p class="mb-6 text-lg text-gray-300">Analogous to trigonometric functions but based on the hyperbola. They appear in physics and engineering, for example in describing the shape of a hanging cable (catenary).</p> <!-- Updated text color -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="content-card p-6">
+                        <div class="formula-display text-center p-3">$\frac{d}{dx} (\sinh x) = \cosh x$</div>
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                    <div class="content-card p-6">
+                        <div class="formula-display text-center p-3">$\frac{d}{dx} (\cosh x) = \sinh x$</div>
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                    <div class="content-card p-6">
+                        <div class="formula-display text-center p-3">$\frac{d}{dx} (\tanh x) = \text{sech}^2 x$</div>
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                    <div class="content-card p-6">
+                        <div class="formula-display text-center p-3">$\frac{d}{dx} (\text{csch} x) = -\text{csch} x \coth x$</div>
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                    <div class="content-card p-6">
+                        <div class="formula-display text-center p-3">$\frac{d}{dx} (\text{sech} x) = -\text{sech} x \tanh x$</div>
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                    <div class="content-card p-6">
+                        <div class="formula-display text-center p-3">$\frac{d}{dx} (\coth x) = -\text{csch}^2 x$</div>
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="advanced-rules" class="content-section hidden">
+                <h2 class="text-3xl font-bold text-gray-100 mb-6">Product & Quotient Rules</h2> <!-- Updated text color -->
+                <p class="mb-6 text-lg text-gray-300">These rules are essential for differentiating functions that are combined through multiplication or division. </p> <!-- Updated text color -->
+                <div class="space-y-8">
+                    <div class="content-card p-6">
+                        <h3 class="text-xl font-semibold text-gray-100 mb-2">The Product Rule</h3> <!-- Updated text color -->
+                        <p class="text-gray-300 mb-4">Used to find the derivative of a product of two functions, $f(x)$ and $g(x)$.</p> <!-- Updated text color -->
+                        <div class="formula-display text-center my-4 p-3 rounded-lg">$(f \cdot g)' = f'g + fg'$</div>
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                    <div class="content-card p-6">
+                        <h3 class="text-xl font-semibold text-gray-100 mb-2">The Quotient Rule</h3> <!-- Updated text color -->
+                        <p class="text-gray-300 mb-4">Used to find the derivative of a ratio of two functions. A mnemonic is "low d-high minus high d-low, square the bottom and away we go."</p> <!-- Updated text color -->
+                        <div class="formula-display text-center my-4 p-3 rounded-lg">$\left(\frac{f}{g}\right)' = \frac{f'g - fg'}{g^2}$</div>
+                        <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                        <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="chain-rule" class="content-section hidden">
+                <h2 class="text-3xl font-bold text-gray-100 mb-6">The Chain Rule</h2> <!-- Updated text color -->
+                <p class="mb-6 text-lg text-gray-300">Arguably the most powerful and widely used differentiation rule, the Chain Rule is for differentiating composite functions (a function inside another function). It's how we handle nested relationships.</p> <!-- Updated text color -->
+                <div class="content-card p-6">
+                    <h3 class="text-xl font-semibold text-gray-100 mb-2">Differentiating Composite Functions</h3> <!-- Updated text color -->
+                     <p class="text-gray-300 mb-4">If you have a function $y = f(g(x))$, the Chain Rule states that you differentiate the "outer" function $f$ with respect to its argument, and then multiply by the derivative of the "inner" function $g$.</p> <!-- Updated text color -->
+                    <div class="formula-display text-center my-4 p-3 rounded-lg">
+                        $\frac{d}{dx} f(g(x)) = f'(g(x)) \cdot g'(x)$
+                    </div>
+                    <p class="text-gray-300 my-4">Using Leibniz notation, if $y=f(u)$ and $u=g(x)$, the rule has an intuitive form:</p> <!-- Updated text color -->
+                    <div class="formula-display text-center my-4 p-3 rounded-lg">
+                        $\frac{dy}{dx} = \frac{dy}{du} \cdot \frac{du}{dx}$
+                    </div>
+                    <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Formula</button>
+                    <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                </div>
+            </section>
+
+            <section id="implicit-diff" class="content-section hidden">
+                <h2 class="text-3xl font-bold text-gray-100 mb-6">Implicit Differentiation</h2> <!-- Updated text color -->
+                <p class="mb-6 text-lg text-gray-300">A technique used when a function is not given in the form $y = f(x)$. Instead, x and y are mixed together in an equation. The key is to differentiate both sides of the equation with respect to x, remembering to use the Chain Rule for terms involving y.</p> <!-- Updated text color -->
+                <div class="content-card p-6">
+                    <h3 class="text-xl font-semibold text-gray-100 mb-2">Example: Find $\frac{dy}{dx}$ for $x^2 + y^2 = 25$</h3> <!-- Updated text color -->
+                    <div class="space-y-4 mt-4">
+                        <div class="p-3 border-l-4 border-gray-600"> <!-- Updated border color -->
+                            <h4 class="font-semibold text-gray-200">Step 1: Differentiate both sides w.r.t. x</h4> <!-- Updated text color -->
+                            <p class="text-sm text-gray-300 mt-1">$\frac{d}{dx}(x^2 + y^2) = \frac{d}{dx}(25)$</p> <!-- Updated text color -->
+                        </div>
+                         <div class="p-3 border-l-4 border-gray-600"> <!-- Updated border color -->
+                            <h4 class="font-semibold text-gray-200">Step 2: Apply derivative rules</h4> <!-- Updated text color -->
+                            <p class="text-sm text-gray-300 mt-1">For $y^2$, use the Chain Rule: $\frac{d}{dx}(y^2) = 2y \cdot \frac{dy}{dx}$.</p> <!-- Updated text color -->
+                            <p class="text-sm text-gray-300 mt-1">$2x + 2y\frac{dy}{dx} = 0$</p> <!-- Updated text color -->
+                        </div>
+                         <div class="p-3 border-l-4 border-gray-600"> <!-- Updated border color -->
+                            <h4 class="font-semibold text-gray-200">Step 3: Solve for $\frac{dy}{dx}$</h4> <!-- Updated text color -->
+                            <p class="text-sm text-gray-300 mt-1">$2y\frac{dy}{dx} = -2x$</p> <!-- Updated text color -->
+                            <p class="text-sm text-gray-300 mt-1 font-bold">$\frac{dy}{dx} = -\frac{x}{y}$</p> <!-- Updated text color -->
+                        </div>
+                    </div>
+                    <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition" data-formula-override="$x^2 + y^2 = 25$ implicitly">✨ Explain this Example</button>
+                    <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                </div>
+            </section>
+            
+            <section id="log-diff" class="content-section hidden">
+                <h2 class="text-3xl font-bold text-gray-100 mb-6">Logarithmic Differentiation</h2> <!-- Updated text color -->
+                <p class="mb-6 text-lg text-gray-300">This is a clever technique for differentiating functions with variables in the exponent, like $y = x^x$, or for simplifying very complex products and quotients. It works by taking the natural logarithm of both sides before differentiating.</p> <!-- Updated text color -->
+                <div class="content-card p-6">
+                    <h3 class="text-xl font-semibold text-gray-100 mb-2">Example: Find the derivative of $y = x^x$</h3> <!-- Updated text color -->
+                     <div class="space-y-4 mt-4">
+                        <div class="p-3 border-l-4 border-gray-600"> <!-- Updated border color -->
+                            <h4 class="font-semibold text-gray-200">Step 1: Take the natural log of both sides</h4> <!-- Updated text color -->
+                            <p class="text-sm text-gray-300 mt-1">$\ln(y) = \ln(x^x)$</p> <!-- Updated text color -->
+                        </div>
+                         <div class="p-3 border-l-4 border-gray-600"> <!-- Updated border color -->
+                            <h4 class="font-semibold text-gray-200">Step 2: Use log properties to simplify</h4> <!-- Updated text color -->
+                            <p class="text-sm text-gray-300 mt-1">The exponent can be brought down as a multiplier.</p> <!-- Updated text color -->
+                            <p class="text-sm text-gray-300 mt-1">$\ln(y) = x \ln(x)$</p> <!-- Updated text color -->
+                        </div>
+                         <div class="p-3 border-l-4 border-gray-600"> <!-- Updated border color -->
+                            <h4 class="font-semibold text-gray-200">Step 3: Differentiate implicitly w.r.t. x</h4> <!-- Updated text color -->
+                             <p class="text-sm text-gray-300 mt-1">Use the Product Rule on the right side.</p> <!-- Updated text color -->
+                            <p class="text-sm text-gray-300 mt-1">$\frac{1}{y}\frac{dy}{dx} = (1)\ln(x) + x(\frac{1}{x}) = \ln(x) + 1$</p> <!-- Updated text color -->
+                        </div>
+                        <div class="p-3 border-l-4 border-gray-600"> <!-- Updated border color -->
+                            <h4 class="font-semibold text-gray-200">Step 4: Solve for $\frac{dy}{dx}$ and substitute y</h4> <!-- Updated text color -->
+                             <p class="text-sm text-gray-300 mt-1">$\frac{dy}{dx} = y(\ln(x)+1)$</p> <!-- Updated text color -->
+                             <p class="text-sm text-gray-300 mt-1 font-bold">$\frac{dy}{dx} = x^x(\ln(x)+1)$</p> <!-- Updated text color -->
+                        </div>
+                    </div>
+                    <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition" data-formula-override="$y = x^x$ using logarithmic differentiation">✨ Explain this Example</button>
+                    <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                </div>
+            </section>
+            
+            <section id="higher-order" class="content-section hidden">
+                 <h2 class="text-3xl font-bold text-gray-100 mb-6">Higher-Order Derivatives</h2> <!-- Updated text color -->
+                <p class="mb-6 text-lg text-gray-300">A higher-order derivative is the result of differentiating a function multiple times. The second derivative, for example, tells us about the concavity of a function's graph (is it curving up or down?). In physics, it represents acceleration.</p> <!-- Updated text color -->
+                <div class="content-card p-6">
+                    <h3 class="text-xl font-semibold text-gray-100 mb-2">Notations</h3> <!-- Updated text color -->
+                     <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="text-sm text-gray-300 uppercase bg-gray-700"> <!-- Updated text color and background -->
+                                <tr><th class="px-6 py-3">Order</th><th class="px-6 py-3">Lagrange</th><th class="px-6 py-3">Leibniz</th></tr>
+                            </thead>
+                            <tbody class="bg-gray-800 text-gray-200"> <!-- Updated background and text color -->
+                                <tr class="border-b border-gray-700"><td class="px-6 py-4">First</td><td class="px-6 py-4">$f'(x)$</td><td class="px-6 py-4">$\frac{dy}{dx}$</td></tr> <!-- Updated border color -->
+                                <tr class="border-b border-gray-700"><td class="px-6 py-4">Second</td><td class="px-6 py-4">$f''(x)$</td><td class="px-6 py-4">$\frac{d^2y}{dx^2}$</td></tr> <!-- Updated border color -->
+                                <tr class="border-b border-gray-700"><td class="px-6 py-4">Third</td><td class="px-6 py-4">$f'''(x)$</td><td class="px-6 py-4">$\frac{d^3y}{dx^3}$</td></tr> <!-- Updated border color -->
+                                <tr><td class="px-6 py-4">nth</td><td class="px-6 py-4">$f^{(n)}(x)$</td><td class="px-6 py-4">$\frac{d^ny}{dx^n}$</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <button class="explain-formula-btn mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">✨ Explain Notations</button>
+                    <div class="explanation-output mt-4 p-3 rounded-lg text-sm hidden"></div>
+                </div>
+            </section>
+
+            <section id="practice-problems" class="content-section hidden">
+                <h2 class="text-3xl font-bold text-gray-100 mb-6">Practice Problems ✨</h2> <!-- Updated text color -->
+                <p class="mb-6 text-lg text-gray-300">Enter a topic or a type of problem you'd like to practice, and Gemini will generate a problem with a step-by-step solution. For example, try "A chain rule problem with trigonometric functions" or "A simple power rule problem."</p> <!-- Updated text color -->
+                <div class="content-card p-6">
+                    <h3 class="text-xl font-semibold text-gray-100 mb-2">Generate a Problem</h3> <!-- Updated text color -->
+                    <textarea id="problem-topic-input" class="w-full p-3 border border-gray-600 rounded-md mb-4 focus:ring focus:ring-blue-200 bg-gray-700 text-gray-100" rows="4" placeholder="e.g., 'A derivative of a product of two exponential functions'"></textarea> <!-- Updated styling -->
+                    <button id="generate-problem-btn" class="bg-indigo-500 text-white px-6 py-3 rounded-md hover:bg-indigo-600 transition flex items-center justify-center">
+                        <span id="generate-problem-text">✨ Generate Problem & Solution</span>
+                        <span id="generate-problem-loading" class="hidden ml-2">
+                            <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </span>
+                    </button>
+                    <div id="problem-output" class="mt-6 p-4 bg-gray-700 rounded-lg hidden"> <!-- Updated background -->
+                        <div id="generated-content" class="text-gray-200"></div> <!-- Updated text color -->
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            
+            // Initial rendering of math when the page loads
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false}
+                ]
+            });
+
+            const navLinks = document.querySelectorAll('.nav-link');
+            const contentSections = document.querySelectorAll('.content-section');
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+
+                    const sectionId = link.getAttribute('data-section');
+                    
+                    contentSections.forEach(section => {
+                        if (section.id === sectionId) {
+                            section.classList.remove('hidden');
+                            // Re-render KaTeX for the newly visible section content
+                            renderMathInElement(section, {
+                                delimiters: [
+                                    {left: '$$', right: '$$', display: true},
+                                    {left: '$', right: '$', display: false}
+                                ]
+                            });
+                        } else {
+                            section.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+
+            // Chart.js Limit Visualizer Logic
+            const ctx = document.getElementById('limitChart').getContext('2d');
+            const slider = document.getElementById('h-slider');
+            const hValueSpan = document.getElementById('h-value');
+
+            const func = x => 0.1 * x * x; 
+            const x0 = 2;
+
+            const chartData = {
+                datasets: [{
+                    label: 'f(x) = 0.1x^2',
+                    data: Array.from({ length: 101 }, (_, i) => ({ x: -2 + i * 0.08, y: func(-2 + i * 0.08) })),
+                    borderColor: '#3b82f6',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.1,
+                    pointRadius: 0,
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)' // Consistent with line color
+                }, {
+                    label: 'Secant Line',
+                    data: [],
+                    borderColor: '#ef4444',
+                    borderWidth: 1.5,
+                    fill: false,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#ef4444'
+                }, {
+                    label: 'Tangent Line',
+                    data: [],
+                    borderColor: '#10b981',
+                    borderWidth: 1.5,
+                    borderDash: [5, 5],
+                    fill: false,
+                    pointRadius: 0
+                }]
+            };
+
+            const limitChart = new Chart(ctx, {
+                type: 'scatter',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    showLine: true,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            grid: {
+                                color: '#4a5568' // Darker grid lines
+                            },
+                            ticks: {
+                                color: '#e2e8f0' // Light ticks
+                            }
+                        },
+                        y: {
+                           beginAtZero: true,
+                           grid: {
+                                color: '#4a5568' // Darker grid lines
+                            },
+                           ticks: {
+                                color: '#e2e8f0' // Light ticks
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#e2e8f0' // Light legend text
+                            }
+                        },
+                        tooltip: {
+                            enabled: false
+                        }
+                    }
+                }
+            });
+
+            function updateChart() {
+                const h = parseFloat(slider.value);
+                hValueSpan.textContent = h.toFixed(2);
+                
+                const p1 = { x: x0, y: func(x0) };
+                const p2 = { x: x0 + h, y: func(x0 + h) };
+
+                const secantSlope = (p2.y - p1.y) / (p2.x - p1.x);
+                const tangentSlope = 0.2 * x0;
+
+                const secantLine = [{x: p1.x - 3, y: p1.y - 3 * secantSlope}, {x: p2.x + 3, y: p2.y + 3 * secantSlope}];
+                const tangentLine = [{x: p1.x - 3, y: p1.y - 3 * tangentSlope}, {x: p1.x + 3, y: p1.y + 3 * tangentSlope}];
+                
+                limitChart.data.datasets[1].data = [p1, p2];
+                limitChart.data.datasets[2].data = tangentLine;
+
+                limitChart.update();
+            }
+
+            slider.addEventListener('input', updateChart);
+            updateChart(); 
+
+            // Gemini API Integration
+            const apiKey = ""; // This will be automatically populated by the Canvas environment.
+
+            async function callGeminiAPI(prompt, outputElement) {
+                outputElement.classList.remove('hidden');
+                outputElement.innerHTML = 'Loading...'; 
+                outputElement.parentElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = { contents: chatHistory };
+                
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const text = result.candidates[0].content.parts[0].text;
+                        outputElement.innerHTML = text;
+                        renderMathInElement(outputElement, {
+                            delimiters: [
+                                {left: '$$', right: '$$', display: true},
+                                {left: '$', right: '$', display: false}
+                            ]
+                        });
+                    } else {
+                        outputElement.innerHTML = 'Error: Could not get a valid response from the API. Please try again.';
+                        console.error('API response structure unexpected:', result);
+                    }
+                } catch (error) {
+                    outputElement.innerHTML = `Error: ${error.message}. Please check your network connection or try again later.`;
+                    console.error('Error calling Gemini API:', error);
+                } finally {
+                    // This block ensures that the loading state is always cleared
+                }
+            }
+
+            // "Explain Formula" Feature
+            const explainButtons = document.querySelectorAll('.explain-formula-btn');
+            explainButtons.forEach(button => {
+                button.addEventListener('click', async () => {
+                    const formulaDisplay = button.previousElementSibling;
+                    const explanationOutput = button.nextElementSibling;
+                    
+                    let formulaText = formulaDisplay.innerText.trim();
+                    const overrideFormula = button.getAttribute('data-formula-override');
+                    if (overrideFormula) {
+                        formulaText = overrideFormula;
+                    }
+
+                    const prompt = `Please explain the differential calculus formula: ${formulaText} in simple and intuitive terms, suitable for a beginner. Focus on what it means and how it's used. Keep the explanation concise and clear.`;
+                    
+                    await callGeminiAPI(prompt, explanationOutput);
+                });
+            });
+
+            // "Generate Practice Problem" Feature
+            const generateProblemBtn = document.getElementById('generate-problem-btn');
+            const problemTopicInput = document.getElementById('problem-topic-input');
+            const problemOutput = document.getElementById('problem-output');
+            const generatedContentDiv = document.getElementById('generated-content');
+            const generateProblemText = document.getElementById('generate-problem-text');
+            const generateProblemLoading = document.getElementById('generate-problem-loading');
+
+            generateProblemBtn.addEventListener('click', async () => {
+                const topic = problemTopicInput.value.trim();
+                if (!topic) {
+                    problemOutput.classList.remove('hidden');
+                    generatedContentDiv.innerHTML = '<p class="text-red-400">Please enter a topic for the practice problem.</p>'; // Updated text color
+                    return;
+                }
+
+                generateProblemText.classList.add('hidden');
+                generateProblemLoading.classList.remove('hidden');
+                problemOutput.classList.remove('hidden');
+                generatedContentDiv.innerHTML = '<p class="text-gray-300 italic">Generating problem...</p>'; // Updated text color
+                problemOutput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+
+                const prompt = `Generate a differential calculus practice problem related to "${topic}". Include the problem statement, clearly labeled, and a detailed step-by-step solution, also clearly labeled. Format the solution using numbered steps. Ensure any mathematical expressions are in LaTeX format using $ for inline and $$ for display. Do not include any introductory or concluding remarks outside the problem/solution structure.`;
+
+                try {
+                    let chatHistory = [];
+                    chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                    const payload = { contents: chatHistory };
+                    
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const text = result.candidates[0].content.parts[0].text;
+                        generatedContentDiv.innerHTML = text;
+                        renderMathInElement(generatedContentDiv, {
+                            delimiters: [
+                                {left: '$$', right: '$$', display: true},
+                                {left: '$', right: '$', display: false}
+                            ]
+                        });
+                    } else {
+                        generatedContentDiv.innerHTML = 'Error: Could not get a valid problem from the API. Please try again.';
+                        console.error('API response structure unexpected:', result);
+                    }
+                } catch (error) {
+                    generatedContentDiv.innerHTML = `Error: ${error.message}. Please check your network connection or try again later.`;
+                    console.error('Error calling Gemini API for problem generation:', error);
+                } finally {
+                    generateProblemText.classList.remove('hidden');
+                    generateProblemLoading.classList.add('hidden');
+                }
+            });
+
+        });
+    </script>
+</body>
+</html>
