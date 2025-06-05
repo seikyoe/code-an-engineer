@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive JEE Chemistry Concentration Calculator</title>
+    <!-- Chosen Palette: Midnight Scholarly -->
+    <!-- Application Structure Plan: A multi-section, single-page application designed for task-oriented learning. A sticky sidebar allows for easy navigation between: 1) A 'Core Concepts' section with a mole calculator, 2) A 'Concentration Terms Explorer' with interactive cards, 3) a central 'Universal Calculator' for real-time interconversions, and 4) a 'Conceptual Guide' with interactive diagrams and cheatsheets. This structure was chosen to guide the user from foundational knowledge (moles) to complex application (interconversions) in a logical, interactive flow, making it superior to passively reading a linear report. -->
+    <!-- Visualization & Content Choices: 
+        - Mole Calculations: Report Info -> Calculating moles from mass/particles/volume. Goal -> Inform/Calculate. Viz -> Tabbed HTML forms. Interaction -> Real-time calculation on input. Justification -> Task-oriented, clean UI. Library -> Vanilla JS.
+        - Concentration Terms: Report Info -> Definitions of Molarity, Molality, etc. Goal -> Organize/Inform. Viz -> HTML/CSS card grid. Interaction -> Hover for details, click for temp-dependence visualizer. Justification -> Scannable, engaging. Library -> Vanilla JS, CSS Transitions.
+        - Interconversions: Report Info -> Interconversion formulas. Goal -> Relate/Synthesize. Viz -> A single, comprehensive two-panel calculator. Interaction -> All outputs update in real-time as user provides solute/solvent/solution data. Justification -> Demonstrates the interconnectedness of concepts far better than static formulas. Library -> Vanilla JS.
+        - Temperature Dependence: Report Info -> Table 2. Goal -> Compare. Viz -> An interactive two-column diagram. Interaction -> Clicking a term animates it to the correct column. Justification -> More memorable and conceptually clearer than a table. Library -> Vanilla JS.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #1a202c; color: #e2e8f0; }
+        .nav-link { transition: all 0.2s ease-in-out; }
+        .nav-link.active { background-color: #0d9488; color: white; }
+        .nav-link:not(.active):hover { background-color: #2d3748; }
+        .card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.1); }
+        .tab-button.active { background-color: #0d9488; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .conceptual-card.active { background-color: #1e293b; border-left-color: #2dd4bf; }
+        .temp-item.dependent { animation: slideToDependent 0.5s forwards; }
+        .temp-item.independent { animation: slideToIndependent 0.5s forwards; }
+        @keyframes slideToDependent { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideToIndependent { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    </style>
+</head>
+<body class="bg-gray-900">
+
+    <div class="flex flex-col md:flex-row min-h-screen">
+        <aside class="w-full md:w-64 bg-gray-950/80 backdrop-blur-sm border-r border-gray-700 p-4 md:sticky md:top-0 md:self-start md:h-screen">
+            <h1 class="text-2xl font-bold text-teal-400 mb-6">JEE Chemistry Hub</h1>
+            <nav class="flex flex-row md:flex-col gap-2">
+                <a href="#introduction" class="nav-link text-sm font-medium p-3 rounded-lg text-gray-300">Introduction</a>
+                <a href="#mole-concept" class="nav-link text-sm font-medium p-3 rounded-lg text-gray-300">The Mole Concept</a>
+                <a href="#concentration-terms" class="nav-link text-sm font-medium p-3 rounded-lg text-gray-300">Concentration Terms</a>
+                <a href="#universal-calculator" class="nav-link text-sm font-medium p-3 rounded-lg text-gray-300">Universal Calculator</a>
+                <a href="#conceptual-guide" class="nav-link text-sm font-medium p-3 rounded-lg text-gray-300">Conceptual Guide</a>
+            </nav>
+        </aside>
+
+        <main class="flex-1 p-4 sm:p-6 md:p-10">
+            <section id="introduction" class="mb-12">
+                <div class="bg-gray-800 p-8 rounded-2xl shadow-sm">
+                    <h2 class="text-4xl font-bold text-gray-100 mb-4">Mastering Concentration Terms</h2>
+                    <p class="text-lg text-gray-300 mb-4">Welcome to your interactive guide for mastering one of the most fundamental topics in JEE Chemistry. This tool is designed to move beyond static formulas, allowing you to actively explore, calculate, and understand the relationships between different concentration terms.</p>
+                    <p class="text-gray-300">Use the navigation on the left to jump between sections. Start with the foundational mole concept, explore the definitions of key terms, use the universal calculator to see how they connect, and solidify your knowledge with the conceptual guide.</p>
+                </div>
+            </section>
+
+            <section id="mole-concept" class="mb-12">
+                <h2 class="text-3xl font-bold text-gray-100 mb-6">🧮 The Mole Concept: Your Foundation</h2>
+                 <div class="bg-gray-800 p-8 rounded-2xl shadow-sm">
+                    <p class="mb-6 text-gray-300">The mole is the chemist's "dozen" – a unit for counting vast numbers of particles. One mole contains exactly 6.022 x 10²³ particles (Avogadro's Constant). Mastering mole calculations is the first step to understanding solution chemistry. Use this calculator to find the number of moles (`n`) from different given quantities.</p>
+                    
+                    <div id="mole-tabs" class="mb-4 border-b border-gray-700">
+                        <button class="tab-button py-2 px-4 font-medium text-gray-400 hover:text-teal-400" data-tab="mass">From Mass</button>
+                        <button class="tab-button py-2 px-4 font-medium text-gray-400 hover:text-teal-400" data-tab="particles">From Particles</button>
+                        <button class="tab-button py-2 px-4 font-medium text-gray-400 hover:text-teal-400" data-tab="gas">From Gas Volume</button>
+                    </div>
+
+                    <div id="mass-content" class="tab-content">
+                        <h3 class="font-semibold text-lg mb-2 text-gray-200">Calculate Moles from Mass</h3>
+                        <p class="text-sm text-gray-400 mb-4">Formula: n = given mass (m) / Molar Mass (M)</p>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                            <input type="number" id="given-mass" placeholder="Given Mass (g)" class="p-3 border border-gray-600 rounded-lg w-full bg-gray-700 text-gray-100 placeholder-gray-400">
+                            <input type="number" id="molar-mass-1" placeholder="Molar Mass (g/mol)" class="p-3 border border-gray-600 rounded-lg w-full bg-gray-700 text-gray-100 placeholder-gray-400">
+                            <div class="p-3 bg-blue-950 rounded-lg text-center">
+                                <span class="font-bold text-lg text-teal-400" id="moles-from-mass-result">0.00 moles</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="particles-content" class="tab-content">
+                        <h3 class="font-semibold text-lg mb-2 text-gray-200">Calculate Moles from Number of Particles</h3>
+                        <p class="text-sm text-gray-400 mb-4">Formula: n = Number of Particles (N) / Avogadro's Constant (N_A)</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                            <input type="number" id="given-particles" placeholder="Number of Particles (e.g., 3.011e23)" class="p-3 border border-gray-600 rounded-lg w-full bg-gray-700 text-gray-100 placeholder-gray-400">
+                            <div class="p-3 bg-blue-950 rounded-lg text-center">
+                                <span class="font-bold text-lg text-teal-400" id="moles-from-particles-result">0.00 moles</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="gas-content" class="tab-content">
+                        <h3 class="font-semibold text-lg mb-2 text-gray-200">Calculate Moles from Gas Volume at STP/NTP</h3>
+                        <p class="text-sm text-gray-400 mb-4">Formula: n = Given Volume (L) / Molar Volume (L/mol)</p>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                            <select id="gas-condition" class="p-3 border border-gray-600 rounded-lg w-full bg-gray-700 text-gray-100">
+                                <option value="22.414">Historical STP (0°C, 1 atm)</option>
+                                <option value="22.71">IUPAC STP (0°C, 1 bar)</option>
+                                <option value="24.05">Common NTP (20°C, 1 atm)</option>
+                                <option value="24.8">Common NTP (25°C, 1 bar)</option>
+                            </select>
+                            <input type="number" id="gas-volume" placeholder="Gas Volume (L)" class="p-3 border border-gray-600 rounded-lg w-full bg-gray-700 text-gray-100 placeholder-gray-400">
+                            <div class="p-3 bg-blue-950 rounded-lg text-center">
+                                <span class="font-bold text-lg text-teal-400" id="moles-from-gas-result">0.00 moles</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="concentration-terms" class="mb-12">
+                <h2 class="text-3xl font-bold text-gray-100 mb-6">🧪 Concentration Terms Explorer</h2>
+                <p class="mb-6 text-gray-300">Solutions are described using various concentration terms. Each has a specific use case and property, especially regarding temperature. Hover over a card for a quick definition and explore the interactive guide below to see which are affected by temperature changes.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="card bg-gray-800 p-6 rounded-2xl shadow-sm relative">
+                        <h3 class="font-bold text-xl mb-2 text-gray-100">Molarity (M)</h3>
+                        <p class="text-sm text-gray-400">Moles of solute per liter of <strong>solution</strong>.</p>
+                        <div class="absolute top-4 right-4 text-xl">🌡️</div>
+                        <div class="absolute inset-0 bg-gray-900/70 text-white p-4 opacity-0 hover:opacity-100 rounded-2xl transition-opacity flex items-center justify-center">
+                            <p class="text-center text-sm">Most common for lab work (e.g., titrations), but its value changes with temperature because volume expands/contracts.</p>
+                        </div>
+                    </div>
+                    <div class="card bg-gray-800 p-6 rounded-2xl shadow-sm relative">
+                        <h3 class="font-bold text-xl mb-2 text-gray-100">Molality (m)</h3>
+                        <p class="text-sm text-gray-400">Moles of solute per kilogram of <strong>solvent</strong>.</p>
+                        <div class="absolute top-4 right-4 text-xl">❄️</div>
+                        <div class="absolute inset-0 bg-gray-900/70 text-white p-4 opacity-0 hover:opacity-100 rounded-2xl transition-opacity flex items-center justify-center">
+                            <p class="text-center text-sm">Temperature-independent because it's based on mass. Preferred for colligative properties (e.g., freezing point depression).</p>
+                        </div>
+                    </div>
+                    <div class="card bg-gray-800 p-6 rounded-2xl shadow-sm relative">
+                        <h3 class="font-bold text-xl mb-2 text-gray-100">Mole Fraction (χ)</h3>
+                        <p class="text-sm text-gray-400">Ratio of moles of a component to total moles.</p>
+                        <div class="absolute top-4 right-4 text-xl">❄️</div>
+                        <div class="absolute inset-0 bg-gray-900/70 text-white p-4 opacity-0 hover:opacity-100 rounded-2xl transition-opacity flex items-center justify-center">
+                            <p class="text-center text-sm">Dimensionless and temperature-independent. Used in Raoult's and Dalton's laws.</p>
+                        </div>
+                    </div>
+                    <div class="card bg-gray-800 p-6 rounded-2xl shadow-sm relative">
+                        <h3 class="font-bold text-xl mb-2 text-gray-100">Mass % (w/w)</h3>
+                        <p class="text-sm text-gray-400">(Mass of solute / Mass of solution) × 100.</p>
+                        <div class="absolute top-4 right-4 text-xl">❄️</div>
+                        <div class="absolute inset-0 bg-gray-900/70 text-white p-4 opacity-0 hover:opacity-100 rounded-2xl transition-opacity flex items-center justify-center">
+                            <p class="text-center text-sm">Intuitive and temperature-independent. Often used in commercial products.</p>
+                        </div>
+                    </div>
+                     <div class="card bg-gray-800 p-6 rounded-2xl shadow-sm relative">
+                        <h3 class="font-bold text-xl mb-2 text-gray-100">ppm / ppb</h3>
+                        <p class="text-sm text-gray-400">Parts per million / billion.</p>
+                         <div class="absolute top-4 right-4 text-xl">❄️</div>
+                        <div class="absolute inset-0 bg-gray-900/70 text-white p-4 opacity-0 hover:opacity-100 rounded-2xl transition-opacity flex items-center justify-center">
+                            <p class="text-center text-sm">For extremely dilute solutions, like measuring pollutants in water. Usually mass-based and temperature-independent.</p>
+                        </div>
+                    </div>
+                     <div class="card bg-gray-800 p-6 rounded-2xl shadow-sm relative">
+                        <h3 class="font-bold text-xl mb-2 text-gray-100">Normality (N)</h3>
+                        <p class="text-sm text-gray-400">Gram equivalents of solute per liter of solution.</p>
+                         <div class="absolute top-4 right-4 text-xl">🌡️</div>
+                        <div class="absolute inset-0 bg-gray-900/70 text-white p-4 opacity-0 hover:opacity-100 rounded-2xl transition-opacity flex items-center justify-center">
+                            <p class="text-center text-sm">Temperature-dependent. Related to Molarity by the n-factor, which depends on the reaction type.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="universal-calculator" class="mb-12">
+                <h2 class="text-3xl font-bold text-gray-100 mb-6">🚀 Universal Concentration Calculator</h2>
+                <p class="mb-6 text-gray-300">This is the core of the hub. Input what you know about your solution, and watch as all concentration values are calculated and updated in real-time. This tool powerfully demonstrates how all these terms are mathematically interconnected. Play with the values to build your intuition!</p>
+                <div class="bg-gray-800 p-8 rounded-2xl shadow-sm grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="space-y-6">
+                        <h3 class="text-xl font-semibold text-gray-200 border-b pb-2 border-gray-700">Provide Solution Details</h3>
+                        <div>
+                            <label class="font-medium text-gray-300">Solute</label>
+                            <div class="grid grid-cols-2 gap-3 mt-1">
+                                <input type="number" id="uc-solute-mass" placeholder="Mass (g)" class="uc-input p-3 border border-gray-600 rounded-lg w-full bg-gray-700 text-gray-100 placeholder-gray-400">
+                                <input type="number" id="uc-solute-molar-mass" placeholder="Molar Mass (g/mol)" class="uc-input p-3 border border-gray-600 rounded-lg w-full bg-gray-700 text-gray-100 placeholder-gray-400">
+                            </div>
+                            <input type="number" id="uc-valency-factor" placeholder="Valency Factor (for Normality)" class="uc-input p-3 border border-gray-600 rounded-lg w-full bg-gray-700 text-gray-100 placeholder-gray-400 mt-3">
+                        </div>
+                        <div>
+                            <label class="font-medium text-gray-300">Solvent (e.g., Water)</label>
+                            <div class="grid grid-cols-2 gap-3 mt-1">
+                                <input type="number" id="uc-solvent-mass" placeholder="Mass (g)" class="uc-input p-3 border border-gray-600 rounded-lg w-full bg-gray-700 text-gray-100 placeholder-gray-400">
+                                <input type="number" id="uc-solvent-molar-mass" placeholder="Molar Mass (g/mol)" value="18.015" class="uc-input p-3 border border-gray-600 rounded-lg w-full bg-gray-700 text-gray-100">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="font-medium text-gray-300">Solution</label>
+                            <div class="grid grid-cols-2 gap-3 mt-1">
+                                <input type="number" id="uc-solution-volume" placeholder="Volume (mL)" class="uc-input p-3 border border-gray-600 rounded-lg w-full bg-gray-700 text-gray-100 placeholder-gray-400">
+                                <input type="number" id="uc-solution-density" placeholder="Density (g/mL)" class="uc-input p-3 border border-gray-600 rounded-lg w-full bg-gray-700 text-gray-100 placeholder-gray-400">
+                            </div>
+                        </div>
+                         <button id="uc-reset" class="w-full p-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">Reset</button>
+                    </div>
+                    <div class="bg-blue-950 p-6 rounded-xl space-y-3">
+                        <h3 class="text-xl font-semibold text-gray-200 border-b pb-2 border-gray-700">Calculated Results</h3>
+                        <div class="flex justify-between items-center"><span class="text-gray-300">Moles of Solute:</span><span id="res-moles-solute" class="font-bold text-lg text-teal-400">0.00 mol</span></div>
+                        <div class="flex justify-between items-center"><span class="text-gray-300">Molarity (M):</span><span id="res-molarity" class="font-bold text-lg text-teal-400">0.00 M</span></div>
+                        <div class="flex justify-between items-center"><span class="text-gray-300">Molality (m):</span><span id="res-molality" class="font-bold text-lg text-teal-400">0.00 m</span></div>
+                        <div class="flex justify-between items-center"><span class="text-gray-300">Mole Fraction (Solute):</span><span id="res-mole-fraction" class="font-bold text-lg text-teal-400">0.00</span></div>
+                        <div class="flex justify-between items-center"><span class="text-gray-300">Mass % (w/w):</span><span id="res-mass-percent" class="font-bold text-lg text-teal-400">0.00 %</span></div>
+                        <div class="flex justify-between items-center"><span class="text-gray-300">ppm (by mass):</span><span id="res-ppm" class="font-bold text-lg text-teal-400">0.00</span></div>
+                        <div class="flex justify-between items-center"><span class="text-gray-300">ppb (by mass):</span><span id="res-ppb" class="font-bold text-lg text-teal-400">0.00</span></div>
+                        <div class="flex justify-between items-center"><span class="text-gray-300">Normality (N):</span><span id="res-normality" class="font-bold text-lg text-teal-400">0.00 N</span></div>
+                    </div>
+                </div>
+            </section>
+
+             <section id="conceptual-guide" class="mb-12">
+                <h2 class="text-3xl font-bold text-gray-100 mb-6">💡 Conceptual Guide & Pitfalls</h2>
+                 <p class="mb-6 text-gray-300">Formulas are only half the battle. JEE tests deep conceptual understanding. This section highlights key ideas and common traps to avoid.</p>
+                 <div class="bg-gray-800 p-8 rounded-2xl shadow-sm">
+                    <h3 class="text-xl font-semibold text-gray-200 mb-4">Temperature Dependence Visualizer</h3>
+                    <p class="text-sm text-gray-400 mb-4">Click on a term to see where it belongs. This is a crucial concept for colligative properties.</p>
+                    <div class="flex justify-center space-x-2 mb-6 flex-wrap gap-2">
+                        <button class="temp-trigger p-2 border border-gray-600 text-gray-200 rounded-md bg-gray-700 hover:bg-gray-600">Molarity</button>
+                        <button class="temp-trigger p-2 border border-gray-600 text-gray-200 rounded-md bg-gray-700 hover:bg-gray-600">Molality</button>
+                        <button class="temp-trigger p-2 border border-gray-600 text-gray-200 rounded-md bg-gray-700 hover:bg-gray-600">Mole Fraction</button>
+                        <button class="temp-trigger p-2 border border-gray-600 text-gray-200 rounded-md bg-gray-700 hover:bg-gray-600">Mass %</button>
+                         <button class="temp-trigger p-2 border border-gray-600 text-gray-200 rounded-md bg-gray-700 hover:bg-gray-600">Normality</button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-red-900 p-4 rounded-lg">
+                            <h4 class="font-bold text-red-400 text-center">🌡️ Dependent</h4>
+                            <p class="text-xs text-center text-red-300 mb-2">Based on Volume</p>
+                            <div id="dependent-col" class="space-y-2 min-h-[50px]"></div>
+                        </div>
+                        <div class="bg-green-900 p-4 rounded-lg">
+                            <h4 class="font-bold text-green-400 text-center">❄️ Independent</h4>
+                            <p class="text-xs text-center text-green-300 mb-2">Based on Mass</p>
+                            <div id="independent-col" class="space-y-2 min-h-[50px]"></div>
+                        </div>
+                    </div>
+                     <hr class="my-8 border-gray-700">
+                     <h3 class="text-xl font-semibold text-gray-200 mb-4">Common Pitfalls & Tips</h3>
+                     <div class="space-y-4">
+                        <div class="conceptual-card border-l-4 border-gray-700 p-4 bg-gray-700">
+                            <h4 class="font-bold text-gray-100">Solute vs. Solvent vs. Solution</h4>
+                            <p class="text-sm text-gray-300">Always double-check what the formula needs!
+                                <br>• <strong>Molarity</strong> uses volume of <strong class="text-red-400">Solution</strong>.
+                                <br>• <strong>Molality</strong> uses mass of <strong class="text-blue-400">Solvent</strong>.
+                                <br>A common mistake is using the solution's mass for molality calculations.
+                            </p>
+                        </div>
+                         <div class="conceptual-card border-l-4 border-gray-700 p-4 bg-gray-700">
+                            <h4 class="font-bold text-gray-100">Density is the Bridge</h4>
+                            <p class="text-sm text-gray-300">To convert between a mass-based unit (like Molality, Mass %) and a volume-based unit (like Molarity), you will almost always need the solution's <strong>density</strong>. It connects mass and volume.</p>
+                        </div>
+                         <div class="conceptual-card border-l-4 border-gray-700 p-4 bg-gray-700">
+                            <h4 class="font-bold text-gray-100">Unit Consistency is Key</h4>
+                            <p class="text-sm text-gray-300">Before calculating, ensure all units match the formula's requirements. Convert mL to L for molarity, and g to kg for molality. This simple check prevents most calculation errors.</p>
+                        </div>
+                     </div>
+                 </div>
+            </section>
+        </main>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    const NAV_LINKS = document.querySelectorAll('.nav-link');
+    const SECTIONS = document.querySelectorAll('main section');
+
+    // Intersection Observer for highlighting on scroll
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                NAV_LINKS.forEach(link => {
+                    link.classList.toggle('active', link.getAttribute('href').substring(1) === entry.target.id);
+                });
+            }
+        });
+    }, { rootMargin: '0px 0px -80% 0px', threshold: 0.1 }); // Adjusted rootMargin for better highlighting as user scrolls
+
+    SECTIONS.forEach(section => observer.observe(section));
+
+    // Handle clicks on navigation links for immediate feedback
+    NAV_LINKS.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault(); // Prevent default anchor behavior
+            const targetId = link.getAttribute('href').substring(1);
+            const targetSection = document.getElementById(targetId);
+            
+            // Smooth scroll to the target section
+            targetSection.scrollIntoView({ behavior: 'smooth' });
+
+            // Manually set active class for immediate visual feedback
+            NAV_LINKS.forEach(nav => nav.classList.remove('active'));
+            link.classList.add('active');
+        });
+    });
+
+    const TABS_CONTAINER = document.getElementById('mole-tabs');
+    const TAB_BUTTONS = TABS_CONTAINER.querySelectorAll('.tab-button');
+    const TAB_CONTENTS = document.querySelectorAll('.tab-content');
+
+    function switchTab(tabId) {
+        TAB_BUTTONS.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tabId));
+        TAB_CONTENTS.forEach(content => content.classList.toggle('active', content.id === `${tabId}-content`));
+    }
+
+    TABS_CONTAINER.addEventListener('click', (e) => {
+        if (e.target.matches('.tab-button')) {
+            switchTab(e.target.dataset.tab);
+        }
+    });
+    // Set initial active tab
+    switchTab('mass');
+
+    const AVOGADRO = 6.022e23;
+
+    function calculateMoles() {
+        const givenMass = parseFloat(document.getElementById('given-mass').value) || 0;
+        const molarMass1 = parseFloat(document.getElementById('molar-mass-1').value) || 0;
+        document.getElementById('moles-from-mass-result').textContent = molarMass1 > 0 ? `${(givenMass / molarMass1).toFixed(4)} moles` : '0.00 moles';
+
+        const givenParticles = parseFloat(document.getElementById('given-particles').value) || 0;
+        document.getElementById('moles-from-particles-result').textContent = `${(givenParticles / AVOGADRO).toFixed(4)} moles`;
+
+        const gasVolume = parseFloat(document.getElementById('gas-volume').value) || 0;
+        const molarVolume = parseFloat(document.getElementById('gas-condition').value);
+        document.getElementById('moles-from-gas-result').textContent = `${(gasVolume / molarVolume).toFixed(4)} moles`;
+    }
+
+    document.getElementById('mole-concept').addEventListener('input', calculateMoles);
+
+    const ucInputs = document.querySelectorAll('.uc-input');
+    const ucResetBtn = document.getElementById('uc-reset');
+
+    function universalCalculator() {
+        const soluteMass = parseFloat(document.getElementById('uc-solute-mass').value) || 0;
+        const soluteMolarMass = parseFloat(document.getElementById('uc-solute-molar-mass').value) || 0;
+        const solventMass = parseFloat(document.getElementById('uc-solvent-mass').value) || 0;
+        const solventMolarMass = parseFloat(document.getElementById('uc-solvent-molar-mass').value) || 0;
+        const solutionVolume = parseFloat(document.getElementById('uc-solution-volume').value) || 0;
+        let solutionDensity = parseFloat(document.getElementById('uc-solution-density').value) || 0;
+        const valencyFactor = parseFloat(document.getElementById('uc-valency-factor').value) || 1; // Default to 1 if not provided
+
+        let calculatedSolutionMass = soluteMass + solventMass;
+        let calculatedSolutionVolume = solutionVolume;
+
+        // If solution volume is not provided but density and total mass are, calculate volume
+        if (calculatedSolutionMass > 0 && solutionDensity > 0 && calculatedSolutionVolume === 0) {
+            calculatedSolutionVolume = calculatedSolutionMass / solutionDensity;
+        } else if (calculatedSolutionVolume > 0 && solutionDensity > 0 && calculatedSolutionMass === 0) {
+             calculatedSolutionMass = calculatedSolutionVolume * solutionDensity;
+        }
+
+
+        const molesSolute = soluteMolarMass > 0 ? soluteMass / soluteMolarMass : 0;
+        const molesSolvent = solventMolarMass > 0 ? solventMass / solventMolarMass : 0;
+        
+        const molarity = calculatedSolutionVolume > 0 ? molesSolute / (calculatedSolutionVolume / 1000) : 0; // Volume in Liters
+        
+        const solventMassKg = solventMass / 1000;
+        const molality = solventMassKg > 0 ? molesSolute / solventMassKg : 0;
+        
+        const totalMoles = molesSolute + molesSolvent;
+        const moleFraction = totalMoles > 0 ? molesSolute / totalMoles : 0;
+        
+        const massPercent = calculatedSolutionMass > 0 ? (soluteMass / calculatedSolutionMass) * 100 : 0;
+        
+        const ppm = calculatedSolutionMass > 0 ? (soluteMass / calculatedSolutionMass) * 1e6 : 0;
+        const ppb = calculatedSolutionMass > 0 ? (soluteMass / calculatedSolutionMass) * 1e9 : 0;
+
+        const normality = molarity * valencyFactor;
+        
+        document.getElementById('res-moles-solute').textContent = `${molesSolute.toFixed(4)} mol`;
+        document.getElementById('res-molarity').textContent = `${molarity.toFixed(4)} M`;
+        document.getElementById('res-molality').textContent = `${molality.toFixed(4)} m`;
+        document.getElementById('res-mole-fraction').textContent = moleFraction.toFixed(4);
+        document.getElementById('res-mass-percent').textContent = `${massPercent.toFixed(2)} %`;
+        document.getElementById('res-ppm').textContent = `${ppm.toFixed(2)}`;
+        document.getElementById('res-ppb').textContent = `${ppb.toFixed(2)}`;
+        document.getElementById('res-normality').textContent = `${normality.toFixed(4)} N`;
+    }
+
+    ucInputs.forEach(input => input.addEventListener('input', universalCalculator));
+    ucResetBtn.addEventListener('click', () => {
+        ucInputs.forEach(input => {
+            if (input.id !== 'uc-solvent-molar-mass') input.value = '';
+        });
+        document.getElementById('uc-solvent-molar-mass').value = '18.015'; // Reset solvent molar mass
+        universalCalculator();
+    });
+    
+    // Initial calculation on load
+    universalCalculator(); 
+
+    const tempTriggers = document.querySelectorAll('.temp-trigger');
+    const dependentCol = document.getElementById('dependent-col');
+    const independentCol = document.getElementById('independent-col');
+
+    tempTriggers.forEach(button => {
+        button.addEventListener('click', () => {
+            const term = button.textContent;
+            const type = button.dataset.type;
+
+            // Remove existing item if it's already in a column to prevent duplicates
+            const existing = document.querySelector(`.temp-item[data-term="${term}"]`);
+            if(existing) existing.remove();
+            
+            const newItem = document.createElement('div');
+            newItem.textContent = term;
+            newItem.dataset.term = term;
+            newItem.className = `temp-item text-sm p-2 rounded-md shadow-sm bg-gray-700 text-gray-100 font-medium text-center ${type}`;
+
+            if (type === 'dependent') {
+                dependentCol.appendChild(newItem);
+            } else {
+                independentCol.appendChild(newItem);
+            }
+        });
+    });
+
+    const conceptualCards = document.querySelectorAll('.conceptual-card');
+    conceptualCards.forEach(card => {
+        card.addEventListener('click', () => {
+            conceptualCards.forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+        });
+    });
+});
+</script>
+</body>
+</html>
