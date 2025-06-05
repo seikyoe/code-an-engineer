@@ -1,7 +1,7 @@
 
-# Code An Engineer 👨‍💻
+# Code An Engineer 🧑‍💻📐
 
-A visual guide on JEE course material with Manim animations.
+A visual guide on JEE course material.
 
 [![Stars](https://img.shields.io/github/stars/seikyoe/code-an-engineer?style=social)](https://github.com/seikyoe/code-an-engineer)
 [![Forks](https://img.shields.io/github/forks/seikyoe/code-an-engineer?style=social)](https://github.com/seikyoe/code-an-engineer)
@@ -9,11 +9,11 @@ A visual guide on JEE course material with Manim animations.
 
 ## Description
 
-This project aims to provide a visually engaging learning experience for JEE (Joint Entrance Examination) aspirants. It leverages Manim, a powerful animation engine, to create intuitive and informative visualizations of key concepts. The content is primarily delivered through HTML-based interactive pages.
+This project aims to provide a visually engaging learning experience for JEE (Joint Entrance Examination) aspirants. The content is primarily delivered through HTML-based interactive pages.
 
 **Homepage:** [https://code-an-engineer.vercel.app](https://code-an-engineer.vercel.app)
 
-## Installation
+### Installation
 
 To run this project locally, you'll need a web browser. No server-side components or complex installations are required. Simply download the repository and open the HTML files in your browser.
 
@@ -36,14 +36,14 @@ To run this project locally, you'll need a web browser. No server-side component
 
 ## Key Features ✨
 
-*   **Visual Learning:** Utilizes Manim animations to illustrate complex concepts in a clear and engaging manner.
+*   **Visual Learning:** Provides visual aids to illustrate complex concepts in a clear and engaging manner.
 *   **JEE Focused:** Content is tailored to the JEE syllabus.
 *   **Interactive Pages:** HTML-based interactive pages for a user-friendly experience.
 *   **Offline Access:** Once downloaded, the content can be accessed offline.
 
 ## Contribution Guidelines 🤝
 
-Contributions are welcome! If you have ideas for new animations, improvements to existing content, or bug fixes, please follow these guidelines:
+Contributions are welcome! If you have ideas for new content, improvements to existing content, or bug fixes, please follow these guidelines:
 
 1.  **Fork the repository.**
 2.  **Create a new branch for your changes.**
@@ -52,7 +52,7 @@ Contributions are welcome! If you have ideas for new animations, improvements to
 
 Please ensure your code is well-documented and follows the existing code style.
 
-## Troubleshooting 🐛
+## Troubleshooting 🛠️
 
 If you encounter any issues, please check the following:
 
@@ -64,3 +64,4 @@ If you still have problems, please open an issue on the GitHub repository.
 ## Additional Documentation 📚
 
 While this README provides a basic overview, further documentation may be available within the project files themselves (e.g., comments in the HTML files).
+```
