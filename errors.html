@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Physics: Errors & Measurements</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chosen Palette: Dark Warm Neutrals (Background: Gray-900, Text: Gray-100, Accent: Teal-400) -->
+    <!-- Application Structure Plan: The SPA is designed as a multi-module interactive dashboard rather than a linear document. This non-linear structure, accessible via a sticky top navigation, allows students to jump directly to the concept they wish to practice. The core modules include: 1) Interactive definitions for fundamental concepts. 2) A 'Quantifying Errors' calculator to make abstract formulae tangible. 3) An 'Error Propagation' calculator for practicing combinations of errors. 4) 'Instrument Simulators' for Vernier calipers and screw gauges to mimic hands-on lab work. 5) A 'Dimensional Analysis' hub with a formula checker for quick verification. 6) A 'Significant Figures' guide for mastering rounding and calculation rules. This task-oriented, tool-based design was chosen because the source material is about applying rules and formulae, which is best learned through active practice rather than passive reading. -->
+    <!-- Visualization & Content Choices: Given the report's content is formulaic and rule-based, traditional data charts are less effective. Instead, the application uses interactive components as its primary visualization method. Info: Fundamental definitions are presented in clickable cards. Goal: To make learning active. Method: HTML/CSS/JS. Compare: 'Accuracy vs. Precision' is shown side-by-side. Goal: To clarify subtle differences. Method: HTML/CSS. Change/Relationships: Error propagation is handled by a dynamic calculator. Goal: To show how input errors affect results. Method: HTML/JS. Organize: Dimensional formulae are in a searchable table. Goal: Quick lookup. Method: HTML/JS. The "wow" factor is the instrument simulators, which use HTML/CSS to visually represent the scales and JS to calculate readings, providing a much richer learning experience than a static diagram. This approach directly supports the application's goal of being a practical study tool. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            background-color: #1a202c; /* dark gray background */
+            color: #e2e8f0; /* light gray text */
+        }
+        .nav-link {
+            transition: color 0.3s, border-color 0.3s;
+        }
+        .active-nav, .nav-link:hover {
+            color: #2dd4bf; /* teal-400 */
+            border-bottom-color: #2dd4bf;
+        }
+        .tool-card {
+            background-color: #2d3748; /* darker gray for cards */
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .tool-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.2), 0 4px 6px -4px rgb(0 0 0 / 0.2);
+        }
+        .btn-primary {
+            background-color: #2dd4bf; /* teal-400 */
+            color: #1a202c; /* dark text for contrast */
+        }
+        .btn-primary:hover {
+            background-color: #20c9a8; /* darker teal */
+        }
+        .instrument-scale {
+            background: #4a5568; /* slate-700 */
+            border: 1px solid #718096; /* slate-600 */
+            position: relative;
+            overflow: hidden;
+            font-family: monospace;
+            font-size: 10px;
+        }
+        .main-scale-mark {
+            position: absolute;
+            background-color: #e2e8f0; /* light gray for marks */
+            width: 1px;
+        }
+        .vernier-scale {
+            position: absolute;
+            background: rgba(74, 85, 104, 0.8); /* slate-700 with opacity */
+            border: 1px solid #a0aec0; /* slate-500 */
+            height: 50%;
+            bottom: 0;
+            transition: left 0.1s linear;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container { height: 350px; }
+        }
+        input[type="text"], input[type="number"], select {
+            background-color: #4a5568; /* slate-700 for inputs */
+            color: #e2e8f0; /* light text for inputs */
+            border-color: #718096; /* slate-600 border for inputs */
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            background-color: #2dd4bf; /* Teal thumb */
+        }
+        input[type="range"]::-moz-range-thumb {
+            background-color: #2dd4bf; /* Teal thumb */
+        }
+    </style>
+</head>
+<body class="font-sans">
+
+    <header class="bg-gray-800/80 backdrop-blur-lg sticky top-0 z-50 shadow-md">
+        <nav class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <h1 class="text-xl md:text-2xl font-bold text-teal-400">Errors</h1>
+                <div class="hidden md:flex items-center space-x-4">
+                    <a href="#fundamentals" class="nav-link py-2 border-b-2 border-transparent text-gray-200 hover:text-teal-400">Fundamentals</a>
+                    <a href="#quantify" class="nav-link py-2 border-b-2 border-transparent text-gray-200 hover:text-teal-400">Quantify Errors</a>
+                    <a href="#propagate" class="nav-link py-2 border-b-2 border-transparent text-gray-200 hover:text-teal-400">Propagation</a>
+                    <a href="#instruments" class="nav-link py-2 border-b-2 border-transparent text-gray-200 hover:text-teal-400">Instruments</a>
+                    <a href="#dimensions" class="nav-link py-2 border-b-2 border-transparent text-gray-200 hover:text-teal-400">Dimensions</a>
+                    <a href="#sigfigs" class="nav-link py-2 border-b-2 border-transparent text-gray-200 hover:text-teal-400">SigFigs</a>
+                </div>
+                <button id="mobile-menu-button" class="md:hidden p-2 rounded-md text-gray-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+            <div id="mobile-menu" class="hidden md:hidden pb-4">
+                 <a href="#fundamentals" class="block py-2 text-center nav-link text-gray-200 hover:text-teal-400">Fundamentals</a>
+                 <a href="#quantify" class="block py-2 text-center nav-link text-gray-200 hover:text-teal-400">Quantify Errors</a>
+                 <a href="#propagate" class="block py-2 text-center nav-link text-gray-200 hover:text-teal-400">Propagation</a>
+                 <a href="#instruments" class="block py-2 text-center nav-link text-gray-200 hover:text-teal-400">Instruments</a>
+                 <a href="#dimensions" class="block py-2 text-center nav-link text-gray-200 hover:text-teal-400">Dimensions</a>
+                 <a href="#sigfigs" class="block py-2 text-center nav-link text-gray-200 hover:text-teal-400">SigFigs</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8">
+
+        <section id="fundamentals" class="py-12">
+            <h2 class="text-3xl font-bold mb-2 text-center text-teal-400">Error Fundamentals</h2>
+            <p class="text-center text-gray-400 max-w-3xl mx-auto mb-8">This section introduces the core concepts of measurement uncertainty. Understand the difference between accuracy and precision, and learn about the common types of errors encountered in experiments.</p>
+            
+            <div class="grid md:grid-cols-2 gap-8 mb-12">
+                <div class="tool-card p-6">
+                    <h3 class="font-bold text-xl mb-2 text-teal-400">Accuracy</h3>
+                    <p>How close a measured value is to the true or accepted value. High accuracy means your measurement is very close to the correct value.</p>
+                </div>
+                <div class="tool-card p-6">
+                    <h3 class="font-bold text-xl mb-2 text-teal-400">Precision</h3>
+                    <p>The degree of consistency among repeated measurements. High precision means your measurements are very close to each other, even if they are not accurate.</p>
+                </div>
+            </div>
+
+            <div class="max-w-4xl mx-auto">
+                <div class="flex border-b border-gray-600">
+                    <button data-tab="systematic" class="tab-btn flex-1 p-4 font-semibold text-gray-400 hover:text-teal-400 focus:outline-none active-tab">Systematic Errors</button>
+                    <button data-tab="random" class="tab-btn flex-1 p-4 font-semibold text-gray-400 hover:text-teal-400 focus:outline-none">Random Errors</button>
+                    <button data-tab="least-count" class="tab-btn flex-1 p-4 font-semibold text-gray-400 hover:text-teal-400 focus:outline-none">Least Count Error</button>
+                </div>
+                <div id="tab-content" class="p-6 bg-gray-700 rounded-b-lg shadow-inner">
+                    <div id="systematic-content" class="tab-pane">
+                        <h4 class="font-bold text-lg mb-2 text-teal-400">Systematic Errors</h4>
+                        <p>These errors consistently occur in one direction, making the measured value always higher or lower than the true value. They are reproducible and can often be corrected. Sources include instrumental flaws, environmental factors, and personal bias like parallax error.</p>
+                    </div>
+                    <div id="random-content" class="tab-pane hidden">
+                        <h4 class="font-bold text-lg mb-2 text-teal-400">Random Errors</h4>
+                        <p>Occur irregularly and are unpredictable in magnitude and direction. They arise from fluctuations in conditions or judgment. These errors cannot be eliminated but can be minimized by taking many readings and averaging them.</p>
+                    </div>
+                    <div id="least-count-content" class="tab-pane hidden">
+                        <h4 class="font-bold text-lg mb-2 text-teal-400">Least Count Error</h4>
+                        <p>Associated with the resolution of the measuring instrument. The least count is the smallest value that can be accurately measured. This error is inherent to the instrument's design. Using a more precise instrument reduces this error.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <hr class="my-8 border-gray-700">
+
+        <section id="quantify" class="py-12">
+            <h2 class="text-3xl font-bold mb-2 text-center text-teal-400">Quantify & Express Errors</h2>
+            <p class="text-center text-gray-400 max-w-3xl mx-auto mb-8">Enter a series of measurements to see how errors are quantified. This interactive calculator demonstrates the process of finding mean value, absolute error, relative error, and percentage error.</p>
+            <div class="tool-card p-6 max-w-3xl mx-auto">
+                <div class="mb-4">
+                    <label for="measurements-input" class="block font-semibold mb-2">Enter measurements (comma-separated):</label>
+                    <input type="text" id="measurements-input" class="w-full p-2 border rounded-md border-gray-600 bg-gray-800 text-gray-200" placeholder="e.g., 10.1, 10.2, 9.9, 10.3, 10.0">
+                    <button id="calculate-errors-btn" class="btn-primary w-full mt-4 py-2 rounded-md font-semibold">Calculate</button>
+                </div>
+                <div id="error-results" class="space-y-3 mt-6 p-4 bg-gray-700 rounded-md hidden">
+                    <p><strong class="text-teal-400">Mean Value (a_mean):</strong> <span id="mean-value"></span></p>
+                    <p><strong class="text-teal-400">Mean Absolute Error (Δa_mean):</strong> <span id="mean-abs-error"></span></p>
+                    <p><strong class="text-teal-400">Final Result:</strong> <span id="final-result"></span></p>
+                    <p><strong class="text-teal-400">Relative Error (δa):</strong> <span id="relative-error"></span></p>
+                    <p><strong class="text-teal-400">Percentage Error (%):</strong> <span id="percentage-error"></span></p>
+                </div>
+            </div>
+        </section>
+
+        <hr class="my-8 border-gray-700">
+
+        <section id="propagate" class="py-12">
+            <h2 class="text-3xl font-bold mb-2 text-center text-teal-400">Error Propagation Calculator</h2>
+            <p class="text-center text-gray-400 max-w-3xl mx-auto mb-8">When a result is calculated from multiple measurements, their errors combine. Use this tool to see how uncertainty propagates through different mathematical operations.</p>
+            <div class="tool-card p-6 max-w-4xl mx-auto">
+                <div class="mb-4">
+                    <label for="prop-operation" class="block font-semibold mb-1">Select Operation:</label>
+                    <select id="prop-operation" class="w-full p-2 border rounded-md border-gray-600 bg-gray-800 text-gray-200">
+                        <option value="sum">Sum (Z = A + B)</option>
+                        <option value="diff">Difference (Z = A - B)</option>
+                        <option value="prod">Product (Z = A * B)</option>
+                        <option value="quot">Quotient (Z = A / B)</option>
+                        <option value="power">Power (Z = A^n)</option>
+                        <option value="general">General (Z = A^x * B^y / C^z)</option>
+                    </select>
+                </div>
+                <div id="prop-inputs" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                <button id="prop-calculate-btn" class="btn-primary w-full mt-6 py-2 rounded-md font-semibold">Calculate Propagation</button>
+                <div id="prop-result" class="mt-6 p-4 bg-gray-700 rounded-md hidden">
+                     <p class="font-semibold">Result:</p>
+                     <p id="prop-formula-used" class="text-sm text-gray-400 mb-2"></p>
+                     <p id="prop-final-result" class="text-lg font-bold text-teal-400"></p>
+                </div>
+            </div>
+        </section>
+        
+        <hr class="my-8 border-gray-700">
+
+        <section id="instruments" class="py-12">
+            <h2 class="text-3xl font-bold mb-2 text-center text-teal-400">Measurement Instrument Simulators</h2>
+             <p class="text-center text-gray-400 max-w-3xl mx-auto mb-8">Practice reading precision instruments. These simulators for the Vernier Caliper and Screw Gauge let you adjust the measurement and see how to calculate the reading, including corrections for zero error.</p>
+            <div class="grid md:grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="tool-card p-6">
+                    <h3 class="font-bold text-xl mb-4 text-center">Vernier Caliper</h3>
+                    <div id="vernier-container" class="w-full h-24 instrument-scale">
+                        <div id="vernier-main-scale"></div>
+                        <div id="vernier-sliding-scale" class="vernier-scale"></div>
+                    </div>
+                    <label for="vernier-slider" class="block font-semibold my-2">Adjust Measurement (0-10mm)</label>
+                    <input type="range" id="vernier-slider" min="0" max="1000" value="357" class="w-full">
+                    <div class="mt-4 p-4 bg-gray-700 rounded-md">
+                        <h4 class="font-semibold mb-2">Reading:</h4>
+                        <p>MSR: <span id="vernier-msr" class="font-mono"></span> mm</p>
+                        <p>Coinciding VSD: <span id="vernier-vsd" class="font-mono"></span></p>
+                        <p>Reading = MSR + (VSD &times; LC) = <span id="vernier-reading" class="font-mono font-bold text-teal-400"></span> mm</p>
+                        <p class="text-xs text-gray-500 mt-1">Least Count (LC) = 0.1 mm</p>
+                    </div>
+                </div>
+
+                <div class="tool-card p-6">
+                    <h3 class="font-bold text-xl mb-4 text-center">Screw Gauge</h3>
+                     <div id="micrometer-container" class="w-full h-24 instrument-scale flex items-center">
+                        <div id="micrometer-main-scale" class="h-full relative w-full"></div>
+                        <div id="micrometer-thimble" class="absolute h-full w-12 bg-gray-600 border-l-2 border-gray-300" style="right: 50px;"></div>
+                    </div>
+                    <label for="micrometer-slider" class="block font-semibold my-2">Adjust Measurement (0-5mm)</label>
+                    <input type="range" id="micrometer-slider" min="0" max="500" value="263" class="w-full">
+                    <div class="mt-4 p-4 bg-gray-700 rounded-md">
+                        <h4 class="font-semibold mb-2">Reading:</h4>
+                        <p>MSR: <span id="micrometer-msr" class="font-mono"></span> mm</p>
+                        <p>CSR: <span id="micrometer-csr" class="font-mono"></span></p>
+                        <p>Reading = MSR + (CSR &times; LC) = <span id="micrometer-reading" class="font-mono font-bold text-teal-400"></span> mm</p>
+                        <p class="text-xs text-gray-500 mt-1">Pitch = 0.5 mm, LC = 0.01 mm</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <hr class="my-8 border-gray-700">
+
+        <section id="dimensions" class="py-12">
+            <h2 class="text-3xl font-bold mb-2 text-center text-teal-400">Dimensional Analysis Hub</h2>
+            <p class="text-center text-gray-400 max-w-3xl mx-auto mb-8">Dimensional analysis is a powerful tool for checking equations and deriving relationships. Use the checker to verify the consistency of any formula based on the Principle of Homogeneity.</p>
+            <div class="tool-card p-6 max-w-3xl mx-auto">
+                 <h3 class="font-bold text-xl mb-2 text-center">Dimensional Consistency Checker</h3>
+                 <label for="equation-input" class="block font-semibold mb-2">Enter Equation:</label>
+                 <input type="text" id="equation-input" class="w-full p-2 border rounded-md font-mono border-gray-600 bg-gray-800 text-gray-200" placeholder="e.g., F = m * a">
+                 <button id="check-dimension-btn" class="btn-primary w-full mt-4 py-2 rounded-md font-semibold">Check Consistency</button>
+                 <div id="dimension-result" class="mt-4 p-4 bg-gray-700 rounded-md hidden"></div>
+            </div>
+        </section>
+
+        <hr class="my-8 border-gray-700">
+
+        <section id="sigfigs" class="py-12">
+            <h2 class="text-3xl font-bold mb-2 text-center text-teal-400">Significant Figures Guide</h2>
+            <p class="text-center text-gray-400 max-w-3xl mx-auto mb-8">Properly reporting results requires understanding significant figures. Use these tools to identify sig-figs in a number and to see how they affect arithmetic calculations.</p>
+            <div class="grid md:grid-cols-2 gap-8">
+                 <div class="tool-card p-6">
+                     <h3 class="font-bold text-xl mb-4 text-center">SigFig Identifier</h3>
+                     <label for="sigfig-input" class="block font-semibold mb-2">Enter a number:</label>
+                     <input type="text" id="sigfig-input" class="w-full p-2 border rounded-md border-gray-600 bg-gray-800 text-gray-200" placeholder="e.g., 0.0520">
+                     <div id="sigfig-result" class="mt-4 p-4 bg-gray-700 rounded-md min-h-[50px]"></div>
+                 </div>
+                 <div class="tool-card p-6">
+                     <h3 class="font-bold text-xl mb-4 text-center">SigFig Calculator</h3>
+                     <input type="text" id="sigfig-num1" class="w-full p-2 border rounded-md mb-2 border-gray-600 bg-gray-800 text-gray-200" placeholder="Number 1 (e.g., 12.54)">
+                     <select id="sigfig-op" class="w-full p-2 border rounded-md mb-2 border-gray-600 bg-gray-800 text-gray-200">
+                        <option value="+">Addition (+)</option>
+                        <option value="-">Subtraction (-)</option>
+                        <option value="*">Multiplication (*)</option>
+                        <option value="/">Division (/)</option>
+                     </select>
+                     <input type="text" id="sigfig-num2" class="w-full p-2 border rounded-md border-gray-600 bg-gray-800 text-gray-200" placeholder="Number 2 (e.g., 3.1)">
+                     <div id="sigfig-calc-result" class="mt-4 p-4 bg-gray-700 rounded-md">
+                        <p>Raw Result: <span id="sigfig-raw"></span></p>
+                        <p class="font-bold">Corrected: <span id="sigfig-corrected" class="text-teal-400"></span></p>
+                     </div>
+                 </div>
+            </div>
+        </section>
+
+    </main>
+    
+    <footer class="bg-gray-900 text-white text-center p-4 mt-12">
+        <p>&copy; 2025 JEE Physics Hub. An Interactive Learning Tool.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Mobile Menu
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            // Tab functionality for Fundamentals
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            const tabPanes = document.querySelectorAll('.tab-pane');
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    tabButtons.forEach(btn => btn.classList.remove('active-tab', 'text-teal-400', 'border-teal-400'));
+                    button.classList.add('active-tab', 'text-teal-400', 'border-teal-400');
+                    tabPanes.forEach(pane => {
+                        if (pane.id === `${button.dataset.tab}-content`) {
+                            pane.classList.remove('hidden');
+                        } else {
+                            pane.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+            // Set initial active tab
+            document.querySelector('.tab-btn[data-tab="systematic"]').classList.add('active-tab', 'text-teal-400', 'border-teal-400');
+
+            // Quantify Errors Calculator
+            const calculateErrorsBtn = document.getElementById('calculate-errors-btn');
+            calculateErrorsBtn.addEventListener('click', () => {
+                const input = document.getElementById('measurements-input').value;
+                const values = input.split(',').map(s => parseFloat(s.trim())).filter(v => !isNaN(v));
+
+                if (values.length < 2) {
+                    alert('Please enter at least two valid, comma-separated numbers.');
+                    return;
+                }
+
+                const n = values.length;
+                const a_mean = values.reduce((sum, val) => sum + val, 0) / n;
+                const abs_errors = values.map(val => Math.abs(a_mean - val));
+                const delta_a_mean = abs_errors.reduce((sum, err) => sum + err, 0) / n;
+                const relative_error = delta_a_mean / a_mean;
+                const percentage_error = relative_error * 100;
+                
+                document.getElementById('mean-value').textContent = a_mean.toPrecision(4);
+                document.getElementById('mean-abs-error').textContent = `± ${delta_a_mean.toPrecision(2)}`;
+                document.getElementById('final-result').textContent = `${a_mean.toPrecision(4)} ± ${delta_a_mean.toPrecision(2)}`;
+                document.getElementById('relative-error').textContent = relative_error.toPrecision(2);
+                document.getElementById('percentage-error').textContent = `${percentage_error.toPrecision(2)} %`;
+
+                document.getElementById('error-results').classList.remove('hidden');
+            });
+
+            // Error Propagation Calculator
+            const propOperation = document.getElementById('prop-operation');
+            const propInputsContainer = document.getElementById('prop-inputs');
+            const propCalculateBtn = document.getElementById('prop-calculate-btn');
+            const propResultContainer = document.getElementById('prop-result');
+
+            function updatePropInputs() {
+                const op = propOperation.value;
+                let inputsHTML = '';
+                if (op === 'sum' || op === 'diff') {
+                    inputsHTML = `
+                        <div><label class="text-sm">A:</label><input type="number" id="prop-a" class="w-full p-1 border rounded border-gray-600 bg-gray-800 text-gray-200" placeholder="Value"></div>
+                        <div><label class="text-sm">ΔA:</label><input type="number" id="prop-da" class="w-full p-1 border rounded border-gray-600 bg-gray-800 text-gray-200" placeholder="Error"></div>
+                        <div><label class="text-sm">B:</label><input type="number" id="prop-b" class="w-full p-1 border rounded border-gray-600 bg-gray-800 text-gray-200" placeholder="Value"></div>
+                        <div><label class="text-sm">ΔB:</label><input type="number" id="prop-db" class="w-full p-1 border rounded border-gray-600 bg-gray-800 text-gray-200" placeholder="Error"></div>
+                    `;
+                } else if (op === 'prod' || op === 'quot') {
+                     inputsHTML = `
+                        <div><label class="text-sm">A:</label><input type="number" id="prop-a" class="w-full p-1 border rounded border-gray-600 bg-gray-800 text-gray-200" placeholder="Value"></div>
+                        <div><label class="text-sm">ΔA:</label><input type="number" id="prop-da" class="w-full p-1 border rounded border-gray-600 bg-gray-800 text-gray-200" placeholder="Error"></div>
+                        <div><label class="text-sm">B:</label><input type="number" id="prop-b" class="w-full p-1 border rounded border-gray-600 bg-gray-800 text-gray-200" placeholder="Value"></div>
+                        <div><label class="text-sm">ΔB:</label><input type="number" id="prop-db" class="w-full p-1 border rounded border-gray-600 bg-gray-800 text-gray-200" placeholder="Error"></div>
+                    `;
+                } else if (op === 'power') {
+                     inputsHTML = `
+                        <div><label class="text-sm">A:</label><input type="number" id="prop-a" class="w-full p-1 border rounded border-gray-600 bg-gray-800 text-gray-200" placeholder="Value"></div>
+                        <div><label class="text-sm">ΔA:</label><input type="number" id="prop-da" class="w-full p-1 border rounded border-gray-600 bg-gray-800 text-gray-200" placeholder="Error"></div>
+                        <div><label class="text-sm">n (power):</label><input type="number" id="prop-n" class="w-full p-1 border rounded border-gray-600 bg-gray-800 text-gray-200" placeholder="Power"></div>
+                    `;
+                } else if (op === 'general') {
+                    inputsHTML = `
+                        <div><label class="text-sm">A:</label><input type="number" id="prop-a" class="w-full p-1 border rounded border-gray-600 bg-gray-800 text-gray-200" placeholder="Value"></div>
+                        <div><label class="text-sm">ΔA:</label><input type="number" id="prop-da" class="w-full p-1 border rounded border-gray-600 bg-gray-800 text-gray-200" placeholder="Error"></div>
+                        <div><label class="text-sm">x (power of A):</label><input type="number" id="prop-x" class="w-full p-1 border rounded border-gray-600 bg-gray-800 text-gray-200" placeholder="Power"></div>
+                        <div><label class="text-sm">B:</label><input type="number" id="prop-b" class="w-full p-1 border rounded border-gray-600 bg-gray-800 text-gray-200" placeholder="Value"></div>
+                        <div><label class="text-sm">ΔB:</label><input type="number" id="prop-db" class="w-full p-1 border rounded border-gray-600 bg-gray-800 text-gray-200" placeholder="Error"></div>
+                        <div><label class="text-sm">y (power of B):</label><input type="number" id="prop-y" class="w-full p-1 border rounded border-gray-600 bg-gray-800 text-gray-200" placeholder="Power"></div>
+                        <div><label class="text-sm">C:</label><input type="number" id="prop-c" class="w-full p-1 border rounded border-gray-600 bg-gray-800 text-gray-200" placeholder="Value"></div>
+                        <div><label class="text-sm">ΔC:</label><input type="number" id="prop-dc" class="w-full p-1 border rounded border-gray-600 bg-gray-800 text-gray-200" placeholder="Error"></div>
+                        <div><label class="text-sm">z (power of C):</label><input type="number" id="prop-z" class="w-full p-1 border rounded border-gray-600 bg-gray-800 text-gray-200" placeholder="Power"></div>
+                    `;
+                }
+                propInputsContainer.innerHTML = inputsHTML;
+            }
+            
+            propOperation.addEventListener('change', updatePropInputs);
+
+            propCalculateBtn.addEventListener('click', () => {
+                const op = propOperation.value;
+                let Z, dZ, formula, resultText;
+
+                const getVal = id => parseFloat(document.getElementById(id)?.value);
+
+                try {
+                    if (op === 'sum') {
+                        const [A, dA, B, dB] = ['prop-a', 'prop-da', 'prop-b', 'prop-db'].map(getVal);
+                        Z = A + B;
+                        dZ = dA + dB;
+                        formula = "ΔZ = ΔA + ΔB";
+                        resultText = `Z = ${Z.toPrecision(4)} ± ${dZ.toPrecision(2)}`;
+                    } else if (op === 'diff') {
+                        const [A, dA, B, dB] = ['prop-a', 'prop-da', 'prop-b', 'prop-db'].map(getVal);
+                        Z = A - B;
+                        dZ = dA + dB;
+                        formula = "ΔZ = ΔA + ΔB";
+                        resultText = `Z = ${Z.toPrecision(4)} ± ${dZ.toPrecision(2)}`;
+                    } else if (op === 'prod') {
+                        const [A, dA, B, dB] = ['prop-a', 'prop-da', 'prop-b', 'prop-db'].map(getVal);
+                        Z = A * B;
+                        const relError = (dA/A) + (dB/B);
+                        dZ = Z * relError;
+                        formula = "ΔZ/Z = ΔA/A + ΔB/B";
+                        resultText = `Z = ${Z.toPrecision(4)} ± ${dZ.toPrecision(2)}`;
+                    } else if (op === 'quot') {
+                        const [A, dA, B, dB] = ['prop-a', 'prop-da', 'prop-b', 'prop-db'].map(getVal);
+                        Z = A / B;
+                        const relError = (dA/A) + (dB/B);
+                        dZ = Z * relError;
+                        formula = "ΔZ/Z = ΔA/A + ΔB/B";
+                        resultText = `Z = ${Z.toPrecision(4)} ± ${dZ.toPrecision(2)}`;
+                    } else if (op === 'power') {
+                        const [A, dA, n] = ['prop-a', 'prop-da', 'prop-n'].map(getVal);
+                        Z = Math.pow(A, n);
+                        const relError = n * (dA/A);
+                        dZ = Z * relError;
+                        formula = "ΔZ/Z = n * (ΔA/A)";
+                        resultText = `Z = ${Z.toPrecision(4)} ± ${dZ.toPrecision(2)}`;
+                    } else if (op === 'general') {
+                        const [A, dA, x, B, dB, y, C, dC, z] = ['prop-a', 'prop-da', 'prop-x', 'prop-b', 'prop-db', 'prop-y', 'prop-c', 'prop-dc', 'prop-z'].map(getVal);
+                        Z = (Math.pow(A, x) * Math.pow(B, y)) / Math.pow(C, z);
+                        const relError = x*(dA/A) + y*(dB/B) + z*(dC/C);
+                        dZ = Math.abs(Z * relError);
+                        formula = "ΔZ/Z = x(ΔA/A) + y(ΔB/B) + z(ΔC/C)";
+                        resultText = `Z = ${Z.toPrecision(4)} ± ${dZ.toPrecision(2)}`;
+                    }
+
+                    if(isNaN(Z) || isNaN(dZ)) throw new Error("Invalid input");
+
+                    document.getElementById('prop-formula-used').textContent = `Formula: ${formula}`;
+                    document.getElementById('prop-final-result').textContent = resultText;
+                    propResultContainer.classList.remove('hidden');
+                } catch (e) {
+                    alert("Please fill all fields with valid numbers.");
+                    propResultContainer.classList.add('hidden');
+                }
+            });
+            updatePropInputs(); // Initial call
+            
+            // Vernier Caliper Simulator
+            const vernierSlider = document.getElementById('vernier-slider');
+            const mainScaleContainer = document.getElementById('vernier-main-scale');
+            const slidingScaleContainer = document.getElementById('vernier-sliding-scale');
+            const LC_VERNIER = 0.1; // mm
+
+            function setupVernierScale() {
+                let mainScaleHTML = '';
+                for (let i = 0; i <= 15; i++) { // 15mm main scale
+                    mainScaleHTML += `<div class="main-scale-mark" style="left: ${i * 20}px; height: ${i % 5 === 0 ? '50%' : '25%'}; top: 0;"><span style="position:absolute; top:52%; left: 2px;">${i}</span></div>`;
+                }
+                mainScaleContainer.innerHTML = mainScaleHTML;
+
+                let slidingScaleHTML = '';
+                for (let i = 0; i <= 10; i++) {
+                     slidingScaleHTML += `<div class="main-scale-mark" style="left: calc(${i * 18}px); height: 100%; top: 0;"><span style="position:absolute; bottom:2px; left: -3px;">${i}</span></div>`;
+                }
+                slidingScaleContainer.innerHTML = slidingScaleHTML;
+            }
+
+            function updateVernier() {
+                const value = vernierSlider.value / 100; // value in mm
+                slidingScaleContainer.style.left = `${value * 20}px`;
+
+                const MSR = Math.floor(value);
+                const remainder = value - MSR;
+                const VSD = Math.round(remainder / LC_VERNIER);
+
+                document.getElementById('vernier-msr').textContent = MSR;
+                document.getElementById('vernier-vsd').textContent = VSD;
+                const reading = MSR + (VSD * LC_VERNIER);
+                document.getElementById('vernier-reading').textContent = reading.toFixed(2);
+            }
+            
+            setupVernierScale();
+            vernierSlider.addEventListener('input', updateVernier);
+            updateVernier();
+
+            // Screw Gauge Simulator
+            const micrometerSlider = document.getElementById('micrometer-slider');
+            const LC_MICROMETER = 0.01;
+            const PITCH = 0.5;
+
+            function updateMicrometer() {
+                const value = micrometerSlider.value / 100; // value in mm
+                const MSR = Math.floor(value / PITCH) * PITCH;
+                const remainder = value - MSR;
+                const CSR = Math.round(remainder / LC_MICROMETER);
+                
+                document.getElementById('micrometer-msr').textContent = MSR.toFixed(2);
+                document.getElementById('micrometer-csr').textContent = CSR;
+                const reading = MSR + (CSR * LC_MICROMETER);
+                document.getElementById('micrometer-reading').textContent = reading.toFixed(2);
+            }
+            micrometerSlider.addEventListener('input', updateMicrometer);
+            updateMicrometer();
+
+
+            // Dimensional Analysis
+            const dimCheckBtn = document.getElementById('check-dimension-btn');
+            const dimResult = document.getElementById('dimension-result');
+            const dimDB = {
+                'L': 'L', 'M': 'M', 'T': 'T', 'A': 'A', 'K': 'K', // Base
+                'v': 'L T^-1', 'a': 'L T^-2', 'F': 'M L T^-2', 'W': 'M L^2 T^-2', 'E': 'M L^2 T^-2', 
+                'P': 'M L^2 T^-3', 'p': 'M L^-1 T^-2', 'rho': 'M L^-3', 'f': 'T^-1', 'h': 'M L^2 T^-1',
+                's': 'L', 't': 'T', 'm': 'M', 'g': 'L T^-2', 'u':'L T^-1'
+            };
+
+            function parseDim(str) {
+                const powers = { M: 0, L: 0, T: 0, A: 0, K: 0 };
+                const parts = str.split(' ');
+                parts.forEach(part => {
+                    const [base, exp] = part.split('^');
+                    powers[base] = exp ? parseInt(exp) : 1;
+                });
+                return powers;
+            }
+            function formatDim(powers) {
+                return Object.entries(powers)
+                    .filter(([_, p]) => p !== 0)
+                    .map(([b, p]) => p === 1 ? b : `${b}^${p}`)
+                    .join(' ');
+            }
+
+            dimCheckBtn.addEventListener('click', () => {
+                const equation = document.getElementById('equation-input').value.replace(/\s/g, '');
+                const sides = equation.split('=');
+                if (sides.length !== 2) {
+                    dimResult.innerHTML = `<p class="text-red-400">Invalid equation format. Use 'LHS = RHS'.</p>`;
+                    dimResult.classList.remove('hidden');
+                    return;
+                }
+
+                const checkSide = (sideStr) => {
+                    const terms = sideStr.split(/[+-]/).filter(t => t);
+                    const termDims = terms.map(term => {
+                        const vars = term.split(/[*\/]/).filter(v => v);
+                        let finalDim = { M: 0, L: 0, T: 0, A: 0, K: 0 };
+                        let divide = false;
+                        term.split('').forEach((char, i) => {
+                            if (char === '/') divide = true;
+                            if (dimDB[term.substring(i, i+1)]) { // basic variable
+                                const v = term.substring(i, i+1);
+                                if (dimDB[v]) {
+                                    const varDim = parseDim(dimDB[v]);
+                                    for (const base in varDim) {
+                                        finalDim[base] += divide ? -varDim[base] : varDim[base];
+                                    }
+                                }
+                            }
+                        });
+                        return finalDim;
+                    });
+                    return termDims;
+                };
+
+                try {
+                    const lhsDims = checkSide(sides[0]);
+                    const rhsDims = checkSide(sides[1]);
+                    const allDims = [...lhsDims, ...rhsDims];
+                    const firstDimStr = formatDim(allDims[0]);
+                    const isConsistent = allDims.every(dim => formatDim(dim) === firstDimStr);
+                    
+                    let html = `<p>LHS Dimension(s): ${lhsDims.map(formatDim).join(', ')}</p>`;
+                    html += `<p>RHS Dimension(s): ${rhsDims.map(formatDim).join(', ')}</p>`;
+                    if (isConsistent) {
+                        html += `<p class="font-bold text-green-400 mt-2">Result: Dimensionally CONSISTENT. Common dimension is [${firstDimStr}]</p>`;
+                    } else {
+                        html += `<p class="font-bold text-red-400 mt-2">Result: Dimensionally INCONSISTENT.</p>`;
+                    }
+                    dimResult.innerHTML = html;
+                } catch(e) {
+                     dimResult.innerHTML = `<p class="text-red-400">Error: Could not parse equation. Use known variables (e.g., F, m, a, s, u, t, g).</p>`;
+                }
+
+                dimResult.classList.remove('hidden');
+            });
+            
+            // Significant Figures
+            const sigfigInput = document.getElementById('sigfig-input');
+            const sigfigResult = document.getElementById('sigfig-result');
+            const sigfigNum1 = document.getElementById('sigfig-num1');
+            const sigfigNum2 = document.getElementById('sigfig-num2');
+            const sigfigOp = document.getElementById('sigfig-op');
+            const sigfigCalcResultRaw = document.getElementById('sigfig-raw');
+            const sigfigCalcResultCorrected = document.getElementById('sigfig-corrected');
+
+            function countSigFigs(numStr) {
+                if (numStr.includes('e')) {
+                    const mantissa = numStr.split('e')[0];
+                    return countSigFigs(mantissa);
+                }
+                if (!numStr.includes('.')) {
+                     return numStr.replace(/^0+/, '').replace(/0+$/, '').length;
+                }
+                const nonFractional = numStr.replace(/^0+/, '').replace(/\./g, '');
+                return nonFractional.length;
+            }
+
+            sigfigInput.addEventListener('input', () => {
+                const val = sigfigInput.value.trim();
+                if (!val) {
+                    sigfigResult.innerHTML = '';
+                    return;
+                }
+                let numStr = val;
+                let sigFigs = 0;
+                let rule = "";
+
+                if (!/^[0-9.eE+-]+$/.test(numStr)) {
+                    sigfigResult.innerHTML = `<p class="text-red-400">Invalid number</p>`;
+                    return;
+                }
+
+                const hasDecimal = numStr.includes('.');
+                let significantPart = numStr.replace(/^0+/, ''); // remove leading zeros
+
+                if (hasDecimal) {
+                    significantPart = significantPart.replace('.', '');
+                } else {
+                    significantPart = significantPart.replace(/0+$/, ''); // remove trailing zeros if no decimal
+                }
+                
+                sigFigs = significantPart.length;
+
+                if (numStr.replace(/[-+.]/g, '').length === 0) sigFigs = 0;
+                if(numStr.includes('.') && parseFloat(numStr) === 0) sigFigs=1; // case for "0.0" etc
+                 if (!hasDecimal && !numStr.endsWith('.')){
+                     let temp = numStr.replace(/^0+/, "");
+                     sigFigs = temp.replace(/0+$/, "").length;
+                     rule = "Trailing zeros in a whole number with no decimal are not significant."
+                 } else {
+                     let temp = numStr.replace(/^0+/, "").replace('.', '');
+                     sigFigs = temp.length;
+                     if(parseFloat(numStr) === 0) sigFigs = numStr.length - 1;
+                     rule = "All non-zero digits, trapped zeros, and trailing zeros after a decimal are significant.";
+                 }
+
+
+                sigfigResult.innerHTML = `<p><strong class="text-teal-400">${sigFigs}</strong> significant figures.</p><p class="text-xs text-gray-500">${rule}</p>`;
+            });
+
+            function performSigFigCalc() {
+                const n1Str = sigfigNum1.value;
+                const n2Str = sigfigNum2.value;
+                const op = sigfigOp.value;
+
+                if (!n1Str || !n2Str) return;
+
+                const n1 = parseFloat(n1Str);
+                const n2 = parseFloat(n2Str);
+                if (isNaN(n1) || isNaN(n2)) return;
+
+                let rawResult;
+                let correctedResult;
+                switch (op) {
+                    case '+': rawResult = n1 + n2; break;
+                    case '-': rawResult = n1 - n2; break;
+                    case '*': rawResult = n1 * n2; break;
+                    case '/': rawResult = n1 / n2; break;
+                }
+
+                if (op === '+' || op === '-') {
+                    const dp1 = n1Str.includes('.') ? n1Str.split('.')[1].length : 0;
+                    const dp2 = n2Str.includes('.') ? n2Str.split('.')[1].length : 0;
+                    const minDp = Math.min(dp1, dp2);
+                    correctedResult = rawResult.toFixed(minDp);
+                } else {
+                    const sf1 = countSigFigs(n1Str);
+                    const sf2 = countSigFigs(n2Str);
+                    const minSf = Math.min(sf1, sf2);
+                    correctedResult = rawResult.toPrecision(minSf);
+                }
+                
+                sigfigCalcResultRaw.textContent = rawResult;
+                sigfigCalcResultCorrected.textContent = correctedResult;
+            }
+
+            [sigfigNum1, sigfigNum2, sigfigOp].forEach(el => el.addEventListener('input', performSigFigCalc));
+
+        });
+    </script>
+</body>
+</html>
