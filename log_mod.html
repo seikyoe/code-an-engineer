@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Guide: Logarithmic & Modulus Functions</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony Neutrals for Light Mode, Dark Neutrals for Dark Mode -->
+    <!-- Application Structure Plan: The SPA uses a thematic, single-page structure with a sticky top navigation for easy access to three main sections: Logarithmic Functions, Modulus Functions, and their Combined Applications. A new section for an AI-powered solver is added for more complex problem-solving. This structure was chosen to mirror a logical learning path, starting with individual concepts and building towards their intersection, real-world relevance, and advanced problem-solving with AI. Each section features interactive explorers (for graphs and properties) and step-by-step solvers to transform the passive text of the source report into an active, hands-on learning tool. This design prioritizes user engagement and comprehension over a simple digital replication of the report, now with added customization (dark mode) and an advanced problem-solving tool. -->
+    <!-- Visualization & Content Choices:
+        - Report Info: Log/Modulus Graphs -> Goal: Compare/Change -> Viz: Interactive Line Chart (Chart.js) -> Interaction: Sliders/Buttons to manipulate function parameters (base, a, h, k) -> Justification: To visually demonstrate how parameters affect function behavior, making abstract concepts concrete.
+        - Report Info: Log/Modulus Properties & Equations -> Goal: Inform/Organize -> Viz: Tabbed content, HTML/CSS calculators, step-by-step text output -> Interaction: User inputs values to verify rules or solve problems -> Justification: To make rules tangible and provide guided practice in solving techniques.
+        - Report Info: Real-world Applications -> Goal: Organize/Inform -> Viz: Interactive Cards (HTML/Flexbox) -> Interaction: Clicking a card reveals details and a simple calculator -> Justification: To present diverse applications in an engaging, digestible format that highlights the practical utility of the functions.
+        - Report Info: Inequality Solutions -> Goal: Compare -> Viz: HTML/CSS Number Line -> Interaction: JS highlights the solution interval(s) -> Justification: To visually represent the crucial difference between 'AND' and 'OR' compound inequalities.
+        - New Feature: AI Solver -> Goal: Solve/Explain -> Viz: Textarea for input, button, and formatted text output -> Interaction: User types problem, AI provides step-by-step solution -> Justification: Provides an advanced tool for users to get assistance with complex problems.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF6; /* Light background */
+            color: #3C3633; /* Dark text */
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        body.dark {
+            background-color: #1a1a1a; /* Dark background */
+            color: #f5f5f5; /* Light text */
+        }
+        .nav-link {
+            transition: all 0.3s ease;
+            position: relative;
+            padding-bottom: 4px;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #7A9D54;
+            transition: width 0.3s ease;
+        }
+        .nav-link:hover::after, .nav-link.active::after {
+            width: 100%;
+        }
+        .card {
+            background-color: #F0EBE3;
+            border: 1px solid #E0D8B0;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+        }
+        body.dark .card {
+            background-color: #2b2b2b;
+            border-color: #4a4a4a;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        body.dark .card:hover {
+            box-shadow: 0 10px 15px -3px rgba(255, 255, 255, 0.05), 0 4px 6px -2px rgba(255, 255, 255, 0.02);
+        }
+        .btn-primary {
+            background-color: #7A9D54;
+            color: #FDFBF6;
+            transition: background-color 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #557A46;
+        }
+        .btn-secondary {
+            background-color: #E0D8B0;
+            color: #3C3633;
+            transition: background-color 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+        }
+        .btn-secondary:hover {
+            background-color: #C7BF9D;
+        }
+        body.dark .btn-secondary {
+            background-color: #4a4a4a;
+            color: #f5f5f5;
+        }
+        body.dark .btn-secondary:hover {
+            background-color: #6a6a6a;
+        }
+        h2 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: #557A46;
+            border-bottom: 2px solid #E0D8B0;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+            transition: color 0.3s ease, border-color 0.3s ease;
+        }
+        body.dark h2 {
+            color: #9EC079;
+            border-color: #4a4a4a;
+        }
+        .latex {
+            font-family: "Times New Roman", serif;
+            font-style: italic;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+            background-color: #fff; /* Chart background */
+            border-radius: 0.5rem;
+        }
+        body.dark .chart-container {
+            background-color: #333; /* Dark chart background */
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .solver-block {
+            background-color: #fff;
+            border: 1px solid #E0D8B0;
+            border-left-width: 4px;
+            border-left-color: #7A9D54;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        body.dark .solver-block {
+            background-color: #222;
+            border-color: #444;
+            border-left-color: #9EC079;
+        }
+        .prop-tab.active {
+            color: #7A9D54;
+            border-color: #7A9D54;
+        }
+        body.dark .prop-tab.active {
+            color: #9EC079;
+            border-color: #9EC079;
+        }
+        .prop-tab {
+             color: #6B7280;
+             border-color: transparent;
+             transition: color 0.3s ease, border-color 0.3s ease;
+        }
+        body.dark .prop-tab {
+            color: #A0A0A0;
+        }
+        .prop-tab:hover {
+            color: #3C3633;
+            border-color: #D1D5DB;
+        }
+        body.dark .prop-tab:hover {
+            color: #E0E0E0;
+            border-color: #555;
+        }
+        input, textarea {
+            background-color: #fff;
+            color: #3C3633;
+            border: 1px solid #D1D5DB;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+        body.dark input, body.dark textarea {
+            background-color: #333;
+            color: #f5f5f5;
+            border-color: #555;
+        }
+        .bg-gray-50 {
+            background-color: #F9FAFB;
+        }
+        body.dark .bg-gray-50 {
+            background-color: #282828;
+        }
+        .text-gray-700 {
+            color: #3C3633;
+        }
+        body.dark .text-gray-700 {
+            color: #E0E0E0;
+        }
+        .text-gray-600 {
+            color: #4B5563;
+        }
+        body.dark .text-gray-600 {
+            color: #C0C0C0;
+        }
+        .text-gray-800 {
+            color: #1F2937;
+        }
+        body.dark .text-gray-800 {
+            color: #F0F0F0;
+        }
+        .text-gray-900 {
+            color: #111827;
+        }
+        body.dark .text-gray-900 {
+            color: #F8F8F8;
+        }
+        .text-sm.text-right.font-bold.text-green-800 {
+            color: #226600;
+        }
+        body.dark .text-sm.text-right.font-bold.text-green-800 {
+            color: #A0D468;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #7A9D54;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md sticky top-0 z-50 shadow-sm transition-colors duration-300">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <span class="text-xl font-bold text-gray-800 dark:text-gray-100">Function Explorer</span>
+                </div>
+                <div class="hidden md:flex items-center space-x-4">
+                    <div class="flex items-baseline space-x-4">
+                        <a href="#log-section" class="nav-link text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium">Logarithmic Functions</a>
+                        <a href="#mod-section" class="nav-link text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium">Modulus Functions</a>
+                        <a href="#app-section" class="nav-link text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium">Combined & Applied</a>
+                        <a href="#ai-solver-section" class="nav-link text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium">AI Problem Solver</a>
+                    </div>
+                    <button id="themeToggle" class="p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-gray-700 dark:text-gray-300">
+                        <!-- Sun/Moon Icon Placeholder -->
+                        <span id="themeIcon" class="text-xl">☀️</span>
+                    </button>
+                </div>
+                <!-- Mobile menu button -->
+                <div class="md:hidden flex items-center">
+                    <button id="themeToggleMobile" class="p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-gray-700 dark:text-gray-300 mr-2">
+                        <span id="themeIconMobile" class="text-xl">☀️</span>
+                    </button>
+                    <button id="mobileMenuButton" type="button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-green-500" aria-controls="mobile-menu" aria-expanded="false">
+                        <span class="sr-only">Open main menu</span>
+                        <svg class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <!-- Mobile menu, show/hide based on menu state. -->
+        <div class="md:hidden hidden" id="mobile-menu">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#log-section" class="nav-link text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 block px-3 py-2 rounded-md text-base font-medium">Logarithmic Functions</a>
+                <a href="#mod-section" class="nav-link text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 block px-3 py-2 rounded-md text-base font-medium">Modulus Functions</a>
+                <a href="#app-section" class="nav-link text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 block px-3 py-2 rounded-md text-base font-medium">Combined & Applied</a>
+                <a href="#ai-solver-section" class="nav-link text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 block px-3 py-2 rounded-md text-base font-medium">AI Problem Solver</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8 space-y-24">
+        
+        <section id="log-section">
+            <h2>Logarithmic Functions</h2>
+            <p class="mb-8 text-lg text-gray-700 dark:text-gray-300">This section explores logarithmic functions, the inverse of exponentials. They are essential for modeling phenomena with vast scales, from earthquake strength to sound intensity. Here, you can visually explore their graphs, test their properties, and practice solving equations and inequalities.</p>
+
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div class="card p-6 rounded-lg">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">Interactive Graph Explorer</h3>
+                    <p class="mb-4 text-gray-600 dark:text-gray-400">Use the slider to change the base of the logarithm (<span class="latex">y = log<sub>a</sub>(x)</span>). Observe how the graph's shape changes and its relationship to its inverse exponential function (<span class="latex">y = a<sup>x</sup></span>).</p>
+                    <div class="chart-container">
+                        <canvas id="logChart"></canvas>
+                    </div>
+                    <div class="mt-6 space-y-4">
+                        <div>
+                            <label for="logBase" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Base <span class="latex">a</span>: <span id="logBaseValue" class="font-bold">2</span></label>
+                            <input id="logBase" type="range" min="0.1" max="10" value="2" step="0.1" class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                        </div>
+                        <div class="flex items-center">
+                            <input id="toggleInverse" type="checkbox" class="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500">
+                            <label for="toggleInverse" class="ml-2 block text-sm text-gray-900 dark:text-gray-100">Show Inverse (<span class="latex">y = a<sup>x</sup></span>) & Line (<span class="latex">y=x</span>)</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="space-y-6">
+                    <div class="card p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">Key Properties</h3>
+                        <p class="mb-4 text-gray-600 dark:text-gray-400">Logarithms have rules that help simplify complex expressions. Explore them below.</p>
+                        <div id="log-property-explorer">
+                           <div class="border-b border-gray-300 dark:border-gray-600">
+                                <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                                    <button class="prop-tab active text-green-700 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-green-600 dark:text-green-400 dark:border-green-400" data-target="product">Product Rule</button>
+                                    <button class="prop-tab text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-500 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent" data-target="quotient">Quotient Rule</button>
+                                    <button class="prop-tab text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-500 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent" data-target="power">Power Rule</button>
+                                </nav>
+                            </div>
+                            <div class="mt-4">
+                                <div id="product" class="prop-content">
+                                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Formula: <span class="latex">log(M*N) = log(M) + log(N)</span></p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">This interactive tool demonstrates the property. Input M and N to verify that the logarithm of their product equals the sum of their individual logarithms.</p>
+                                    <div id="log-solver" class="solver-block p-4 rounded-lg mt-4">
+                                      <h4 class="font-semibold mb-3 text-gray-800 dark:text-gray-100">Logarithmic Equation Solver</h4>
+                                      <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Enter a simple logarithmic equation in the form <span class="latex">log<sub>b</sub>(x) = c</span> to see the step-by-step solution.</p>
+                                      <div class="flex items-center space-x-2">
+                                          <span class="latex">log</span>
+                                          <input id="logEqBase" type="number" placeholder="base" class="w-16 p-1 border rounded">
+                                          <span>( <span class="latex">x</span> ) =</span>
+                                          <input id="logEqVal" type="number" placeholder="value" class="w-16 p-1 border rounded">
+                                          <button id="solveLogEqBtn" class="btn-secondary px-3 py-1 rounded-md text-sm">Solve</button>
+                                      </div>
+                                      <div id="logEqSolution" class="mt-3 text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-3 rounded"></div>
+                                    </div>
+                                </div>
+                                 <div id="quotient" class="prop-content hidden">
+                                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Formula: <span class="latex">log(M/N) = log(M) - log(N)</span></p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">This tool shows that the logarithm of a quotient is the difference of the logarithms.</p>
+                                     <div id="log-inequality-solver" class="solver-block p-4 rounded-lg mt-4">
+                                        <h4 class="font-semibold mb-3 text-gray-800 dark:text-gray-100">Logarithmic Inequality Solver</h4>
+                                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Solve an inequality like <span class="latex">log<sub>b</sub>(x) > c</span>. Note how the inequality direction depends on the base.</p>
+                                        <div class="flex items-center space-x-2 flex-wrap gap-2">
+                                            <span class="latex">log</span>
+                                            <input id="logIneqBase" type="number" placeholder="base" class="w-16 p-1 border rounded">
+                                            <span>( <span class="latex">x</span> ) ></span>
+                                            <input id="logIneqVal" type="number" placeholder="value" class="w-16 p-1 border rounded">
+                                            <button id="solveLogIneqBtn" class="btn-secondary px-3 py-1 rounded-md text-sm">Solve</button>
+                                        </div>
+                                        <div id="logIneqSolution" class="mt-3 text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-3 rounded"></div>
+                                    </div>
+                                </div>
+                                 <div id="power" class="prop-content hidden">
+                                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Formula: <span class="latex">log(M<sup>k</sup>) = k * log(M)</span></p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">This tool demonstrates how an exponent inside a logarithm can be moved out as a multiplier.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="mod-section">
+            <h2>Modulus (Absolute Value) Functions</h2>
+            <p class="mb-8 text-lg text-gray-700 dark:text-gray-300">The modulus function gives the non-negative magnitude of a number, or its distance from zero. Its graph is a distinctive V-shape. Explore its transformations and learn the systematic case-based approach to solving modulus equations and inequalities.</p>
+            
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div class="card p-6 rounded-lg">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">Interactive Graph Explorer</h3>
+                    <p class="mb-4 text-gray-600 dark:text-gray-400">Manipulate the parameters in <span class="latex">y = a|x - h| + k</span> to see how the V-shaped graph is stretched, reflected, and shifted.</p>
+                    <div class="chart-container">
+                        <canvas id="modChart"></canvas>
+                    </div>
+                    <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label for="modA" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Stretch (<span class="latex">a</span>): <span id="modAValue" class="font-bold">1</span></label>
+                            <input id="modA" type="range" min="-3" max="3" value="1" step="0.1" class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                        </div>
+                        <div>
+                            <label for="modH" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Horizontal Shift (<span class="latex">h</span>): <span id="modHValue" class="font-bold">0</span></label>
+                            <input id="modH" type="range" min="-5" max="5" value="0" step="0.5" class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                        </div>
+                        <div>
+                            <label for="modK" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Vertical Shift (<span class="latex">k</span>): <span id="modKValue" class="font-bold">0</span></label>
+                            <input id="modK" type="range" min="-5" max="5" value="0" step="0.5" class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                     <div class="card p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">Modulus Solvers</h3>
+                        <p class="mb-4 text-gray-600 dark:text-gray-400">Solving modulus problems involves careful case analysis. Select a type to see how it's done.</p>
+                        
+                        <div class="solver-block p-4 rounded-lg">
+                            <h4 class="font-semibold mb-3 text-gray-800 dark:text-gray-100">Equation Solver: <span class="latex">|x - h| = c</span></h4>
+                             <div class="flex items-center space-x-2 flex-wrap gap-2">
+                                <span class="latex">|x -</span>
+                                <input id="modEqH" type="number" placeholder="h" value="1" class="w-16 p-1 border rounded">
+                                <span class="latex">| =</span>
+                                <input id="modEqC" type="number" placeholder="c" value="3" class="w-16 p-1 border rounded">
+                                <button id="solveModEqBtn" class="btn-secondary px-3 py-1 rounded-md text-sm">Solve</button>
+                            </div>
+                            <div id="modEqSolution" class="mt-3 text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-3 rounded"></div>
+                        </div>
+
+                        <div class="solver-block p-4 rounded-lg mt-4">
+                            <h4 class="font-semibold mb-3 text-gray-800 dark:text-gray-100">Inequality Solver: <span class="latex">|x - h| &lt; c</span></h4>
+                             <div class="flex items-center space-x-2 flex-wrap gap-2">
+                                <span class="latex">|x -</span>
+                                <input id="modIneqH" type="number" placeholder="h" value="2" class="w-16 p-1 border rounded">
+                                <span class="latex">| &lt;</span>
+                                <input id="modIneqC" type="number" placeholder="c" value="4" class="w-16 p-1 border rounded">
+                                <button id="solveModIneqBtn" class="btn-secondary px-3 py-1 rounded-md text-sm">Solve</button>
+                            </div>
+                            <div id="modIneqSolution" class="mt-3 text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-3 rounded"></div>
+                        </div>
+
+                     </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="app-section">
+            <h2>Combined & Applied</h2>
+            <p class="mb-8 text-lg text-gray-700 dark:text-gray-300">Logarithmic and modulus functions are powerful tools in science, engineering, and finance. This section explores how to solve problems involving both function types and showcases their real-world applications. Click on a card to learn more.</p>
+
+            <div class="grid md:grid-cols-2 gap-12 mb-12">
+                <div class="card p-6 rounded-lg">
+                    <h3 class="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">Combined Solver</h3>
+                    <p class="mb-4 text-gray-600 dark:text-gray-400">Solving equations with nested functions requires careful attention to domain rules. Note the different checks for <span class="latex">log|f(x)|</span> vs <span class="latex">|log f(x)|</span>.</p>
+                     <div class="solver-block p-4 rounded-lg">
+                        <h4 class="font-semibold mb-3 text-gray-800 dark:text-gray-100">Solve: <span class="latex">log<sub>2</sub>|x| = c</span></h4>
+                         <div class="flex items-center space-x-2">
+                            <span class="latex">log<sub>2</sub>|x| = </span>
+                            <input id="combo1Val" type="number" placeholder="c" value="3" class="w-20 p-1 border rounded">
+                            <button id="solveCombo1Btn" class="btn-secondary px-3 py-1 rounded-md text-sm">Solve</button>
+                        </div>
+                        <div id="combo1Solution" class="mt-3 text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-3 rounded"></div>
+                    </div>
+                     <div class="solver-block p-4 rounded-lg mt-4">
+                        <h4 class="font-semibold mb-3 text-gray-800 dark:text-gray-100">Solve: <span class="latex">|ln(x)| = c</span></h4>
+                         <div class="flex items-center space-x-2">
+                            <span class="latex">|ln(x)| = </span>
+                            <input id="combo2Val" type="number" placeholder="c" value="2" class="w-20 p-1 border rounded">
+                            <button id="solveCombo2Btn" class="btn-secondary px-3 py-1 rounded-md text-sm">Solve</button>
+                        </div>
+                        <div id="combo2Solution" class="mt-3 text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-3 rounded"></div>
+                    </div>
+                </div>
+                <div class="card p-6 rounded-lg">
+                    <h3 class="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">Real-World Applications</h3>
+                    <p class="mb-4 text-gray-600 dark:text-gray-400">Logarithms compress vast scales into understandable numbers. Explore some examples.</p>
+                    <div id="app-card-container" class="space-y-3">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="ai-solver-section">
+            <h2>AI Problem Solver</h2>
+            <p class="mb-8 text-lg text-gray-700 dark:text-gray-300">
+                Enter any logarithmic or modulus equation/inequality problem. The AI will provide a step-by-step solution.
+                Example problems: <span class="font-mono">log(x+2) = 3</span>, <span class="font-mono">|2x-5| < 7</span>, <span class="font-mono">log_3(|x-1|) = 2</span>.
+            </p>
+            <div class="card p-6 rounded-lg">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">Solve with AI</h3>
+                <textarea id="aiProblemInput" class="w-full p-3 border rounded-md resize-y min-h-[120px] mb-4" placeholder="Enter your math problem here..."></textarea>
+                <button id="solveAIProblemBtn" class="btn-primary px-6 py-2 rounded-md font-semibold flex items-center justify-center">
+                    <span id="aiSolveText">Solve Problem</span>
+                    <div id="aiLoader" class="loader ml-3 hidden"></div>
+                </button>
+                <div id="aiSolutionOutput" class="mt-6 p-4 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                    Solution will appear here.
+                </div>
+            </div>
+        </section>
+
+    </main>
+    
+    <footer class="bg-gray-800 dark:bg-gray-900 transition-colors duration-300">
+        <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 text-center text-gray-400 text-sm">
+            <p>Interactive Function Explorer &copy; 2025. All rights reserved.</p>
+        </div>
+    </footer>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    let logChart, modChart;
+
+    const appData = {
+        applications: [
+            {
+                title: "Richter Scale (Earthquakes)",
+                description: "Measures earthquake magnitude. Each whole number increase represents a 10-fold increase in measured amplitude.",
+                formula: "$$M = \\log(A)$$",
+                inputLabel: "Wave Amplitude (A)",
+                unit: "μm",
+                calculate: (A) => A > 0 ? Math.log10(A).toFixed(2) : "Invalid Input"
+            },
+            {
+                title: "pH Scale (Acidity)",
+                description: "Measures the acidity or alkalinity of a solution. It is the negative log of the hydrogen ion concentration.",
+                formula: "$$pH = -\\log[H+]$$",
+                inputLabel: "Hydrogen Ions [H+]",
+                unit: "mol/L",
+                calculate: (H) => H > 0 ? (-Math.log10(H)).toFixed(2) : "Invalid Input"
+            },
+            {
+                title: "Decibel Scale (Sound)",
+                description: "Measures sound intensity relative to a reference level. It captures the vast range of human hearing.",
+                formula: "$$dB = 10 \\cdot \\log(I / I₀)$$",
+                inputLabel: "Intensity (I)",
+                unit: "W/m²",
+                calculate: (I) => I > 0 ? (10 * Math.log10(I / 1e-12)).toFixed(1) : "Invalid Input"
+            }
+        ]
+    };
+
+    function initLogChart() {
+        const ctx = document.getElementById('logChart').getContext('2d');
+        logChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                datasets: [
+                    {
+                        label: 'y = log_a(x)',
+                        data: [],
+                        borderColor: '#7A9D54',
+                        backgroundColor: 'rgba(122, 157, 84, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'y = a^x (Inverse)',
+                        data: [],
+                        borderColor: '#E0D8B0',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        borderDash: [5, 5],
+                        hidden: true
+                    },
+                    {
+                        label: 'y = x',
+                        data: [],
+                        borderColor: 'rgba(60, 54, 51, 0.3)',
+                        borderWidth: 1,
+                        pointRadius: 0,
+                        borderDash: [2, 2],
+                        hidden: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom',
+                        min: 0,
+                        max: 10,
+                        title: { display: true, text: 'x', color: getComputedStyle(document.body).color }
+                    },
+                    y: {
+                        min: -5,
+                        max: 5,
+                        title: { display: true, text: 'y', color: getComputedStyle(document.body).color }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    legend: {
+                        labels: {
+                            color: getComputedStyle(document.body).color
+                        }
+                    }
+                }
+            }
+        });
+        updateLogChart(2);
+    }
+
+    function updateLogChart(base) {
+        document.getElementById('logBaseValue').textContent = parseFloat(base).toFixed(2);
+        const logData = [];
+        const expData = [];
+        const lineData = [];
+        
+        for (let x = 0.01; x <= 10; x += 0.1) {
+            logData.push({x: x, y: Math.log(x) / Math.log(base)});
+        }
+        
+        for (let x = -5; x <= 10; x += 0.1) {
+             if (Math.pow(base, x) <= 10) {
+                 expData.push({x: Math.pow(base, x), y: x});
+             }
+             if (x >= 0 && x <= 10) lineData.push({x: x, y: x});
+        }
+        
+        logChart.data.datasets[0].data = logData;
+        logChart.data.datasets[1].data = expData;
+        logChart.data.datasets[2].data = lineData;
+        
+        logChart.data.datasets[0].label = `y = log_${parseFloat(base).toFixed(1)}(x)`;
+        logChart.data.datasets[1].label = `y = ${parseFloat(base).toFixed(1)}^x (Inverse)`;
+
+        if (base > 0 && base < 1) {
+            logChart.options.scales.y.min = -5;
+            logChart.options.scales.y.max = 5;
+        } else {
+             logChart.options.scales.y.min = -5;
+            logChart.options.scales.y.max = 5;
+        }
+        logChart.update('none');
+    }
+
+    function initModChart() {
+        const ctx = document.getElementById('modChart').getContext('2d');
+        modChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                datasets: [{
+                    label: 'y = a|x-h|+k',
+                    data: [],
+                    borderColor: '#7A9D54',
+                    backgroundColor: 'rgba(122, 157, 84, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom',
+                        min: -10,
+                        max: 10,
+                        title: { display: true, text: 'x', color: getComputedStyle(document.body).color }
+                    },
+                    y: {
+                        min: -5,
+                        max: 10,
+                        title: { display: true, text: 'y', color: getComputedStyle(document.body).color }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                     legend: {
+                        labels: {
+                            color: getComputedStyle(document.body).color
+                        }
+                    }
+                }
+            }
+        });
+        updateModChart(1, 0, 0);
+    }
+
+    function updateModChart(a, h, k) {
+        document.getElementById('modAValue').textContent = parseFloat(a).toFixed(1);
+        document.getElementById('modHValue').textContent = parseFloat(h).toFixed(1);
+        document.getElementById('modKValue').textContent = parseFloat(k).toFixed(1);
+        const data = [];
+        for (let x = -10; x <= 10; x += 0.1) {
+            data.push({x: x, y: a * Math.abs(x - h) + k});
+        }
+        modChart.data.datasets[0].data = data;
+        modChart.data.datasets[0].label = `y = ${a.toFixed(1)}|x - ${h.toFixed(1)}| + ${k.toFixed(1)}`;
+        modChart.update('none');
+    }
+    
+    function setupNav() {
+        const sections = document.querySelectorAll('main section');
+        const navLinks = document.querySelectorAll('header nav a');
+        
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.4
+        };
+
+        const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const id = entry.target.getAttribute('id');
+                    navLinks.forEach(link => {
+                        link.classList.toggle('active', link.hash === `#${id}`);
+                    });
+                }
+            });
+        }, observerOptions);
+
+        sections.forEach(section => observer.observe(section));
+
+        document.getElementById('mobileMenuButton').addEventListener('click', () => {
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenu.classList.toggle('hidden');
+        });
+        document.querySelectorAll('#mobile-menu a').forEach(link => {
+            link.addEventListener('click', () => {
+                document.getElementById('mobile-menu').classList.add('hidden');
+            });
+        });
+    }
+    
+    function setupLogPropertyTabs() {
+        const tabs = document.querySelectorAll('.prop-tab');
+        const contents = document.querySelectorAll('.prop-content');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => {
+                    t.classList.remove('active', 'text-green-700', 'border-green-600', 'dark:text-green-400', 'dark:border-green-400');
+                    t.classList.add('text-gray-500', 'border-transparent', 'dark:text-gray-400');
+                });
+                tab.classList.add('active', 'text-green-700', 'border-green-600', 'dark:text-green-400', 'dark:border-green-400');
+                tab.classList.remove('text-gray-500', 'border-transparent', 'dark:text-gray-400');
+                
+                contents.forEach(content => {
+                    content.classList.toggle('hidden', content.id !== tab.dataset.target);
+                });
+            });
+        });
+    }
+
+    function populateAppCards() {
+        const container = document.getElementById('app-card-container');
+        appData.applications.forEach(app => {
+            const cardHTML = `
+                <div class="solver-block p-4 rounded-lg">
+                    <h4 class="font-semibold mb-1 text-gray-800 dark:text-gray-100">${app.title}</h4>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">${app.description}</p>
+                    <p class="text-sm font-mono mb-2">${app.formula}</p>
+                    <div class="flex items-center space-x-2">
+                        <input type="number" data-app="${app.title}" placeholder="${app.inputLabel}" class="w-full p-1 border rounded">
+                        <button class="app-calc-btn btn-secondary px-3 py-1 rounded-md text-sm">Calc</button>
+                    </div>
+                    <div class="app-result mt-2 text-sm text-right font-bold text-green-800 dark:text-green-400"></div>
+                </div>
+            `;
+            container.innerHTML += cardHTML;
+        });
+
+        document.querySelectorAll('.app-calc-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const input = e.target.previousElementSibling;
+                const appTitle = input.dataset.app;
+                const resultDiv = e.target.parentElement.nextElementSibling;
+                const app = appData.applications.find(a => a.title === appTitle);
+                const value = parseFloat(input.value);
+
+                if (!isNaN(value) && app) {
+                    const result = app.calculate(value);
+                    resultDiv.textContent = `Result: ${result}`;
+                } else {
+                    resultDiv.textContent = "Please enter a valid number.";
+                }
+            });
+        });
+    }
+
+    function setupSolvers() {
+        document.getElementById('solveLogEqBtn').addEventListener('click', () => {
+            const base = parseFloat(document.getElementById('logEqBase').value);
+            const val = parseFloat(document.getElementById('logEqVal').value);
+            const solutionDiv = document.getElementById('logEqSolution');
+            if (isNaN(base) || isNaN(val) || base <= 0 || base === 1) {
+                solutionDiv.innerHTML = `<p class="text-red-600">Invalid input. Base must be positive and not equal to 1.</p>`;
+                return;
+            }
+            const result = Math.pow(base, val);
+            solutionDiv.innerHTML = `
+                <p>1. Start with the equation: <span class="latex">log<sub>${base}</sub>(x) = ${val}</span></p>
+                <p>2. Convert to exponential form: <span class="latex">x = ${base}<sup>${val}</sup></span></p>
+                <p>3. Calculate the result: <span class="latex">x = ${result.toFixed(4)}</span></p>
+                <p>4. Domain check: Since <span class="latex">${result.toFixed(4)} > 0</span>, the solution is valid.</p>
+            `;
+        });
+
+        document.getElementById('solveLogIneqBtn').addEventListener('click', () => {
+            const base = parseFloat(document.getElementById('logIneqBase').value);
+            const val = parseFloat(document.getElementById('logIneqVal').value);
+            const solutionDiv = document.getElementById('logIneqSolution');
+            if (isNaN(base) || isNaN(val) || base <= 0 || base === 1) {
+                solutionDiv.innerHTML = `<p class="text-red-600">Invalid input. Base must be positive and not equal to 1.</p>`;
+                return;
+            }
+            const result = Math.pow(base, val);
+            let steps = `<p>1. Start with the inequality: <span class="latex">log<sub>${base}</sub>(x) > ${val}</span></p>
+                         <p>2. Define domain: The argument of a log must be positive, so <span class="latex">x > 0</span>.</p>`;
+
+            if (base > 1) {
+                steps += `<p>3. Base is > 1, so inequality direction is preserved.</p>
+                          <p>4. Convert to exponential form: <span class="latex">x > ${base}<sup>${val}</sup></span>, so <span class="latex">x > ${result.toFixed(4)}</span></p>
+                          <p>5. Intersect with domain: (<span class="latex">${result.toFixed(4)}, ∞</span>) ∩ (<span class="latex">0, ∞</span>).</p>
+                          <p>Final Solution: <span class="font-bold latex">x > ${result.toFixed(4)}</span></p>`;
+            } else { // 0 < base < 1
+                steps += `<p>3. Base is between 0 and 1, so inequality direction is <span class="font-bold text-red-600">reversed</span>.</p>
+                          <p>4. Convert to exponential form: <span class="latex">x < ${base}<sup>${val}</sup></span>, so <span class="latex">x < ${result.toFixed(4)}</span></p>
+                           <p>5. Intersect with domain: (<span class="latex">-∞, ${result.toFixed(4)}</span>) ∩ (<span class="latex">0, ∞</span>).</p>
+                          <p>Final Solution: <span class="font-bold latex">0 < x < ${result.toFixed(4)}</span></p>`;
+            }
+            solutionDiv.innerHTML = steps;
+        });
+
+        document.getElementById('solveModEqBtn').addEventListener('click', () => {
+            const h = parseFloat(document.getElementById('modEqH').value);
+            const c = parseFloat(document.getElementById('modEqC').value);
+            const solutionDiv = document.getElementById('modEqSolution');
+            if (isNaN(h) || isNaN(c)) {
+                 solutionDiv.innerHTML = `<p class="text-red-600">Please enter valid numbers.</p>`; return;
+            }
+            if (c < 0) {
+                 solutionDiv.innerHTML = `<p>No solution. Absolute value cannot be negative.</p>`; return;
+            }
+            const sol1 = h + c;
+            const sol2 = h - c;
+            solutionDiv.innerHTML = `
+                <p>1. Start with: <span class="latex">|x - ${h}| = ${c}</span></p>
+                <p>2. Create two cases:</p>
+                <p class="ml-4">a) <span class="latex">x - ${h} = ${c}</span>  => <span class="latex">x = ${sol1}</span></p>
+                <p class="ml-4">b) <span class="latex">x - ${h} = -${c}</span> => <span class="latex">x = ${sol2}</span></p>
+                <p>Final Solutions: <span class="font-bold latex">x = ${sol1}</span> or <span class="font-bold latex">x = ${sol2}</span></p>
+            `;
+        });
+        
+        document.getElementById('solveModIneqBtn').addEventListener('click', () => {
+            const h = parseFloat(document.getElementById('modIneqH').value);
+            const c = parseFloat(document.getElementById('modIneqC').value);
+            const solutionDiv = document.getElementById('modIneqSolution');
+            if (isNaN(h) || isNaN(c)) {
+                 solutionDiv.innerHTML = `<p class="text-red-600">Please enter valid numbers.</p>`; return;
+            }
+             if (c < 0) {
+                 solutionDiv.innerHTML = `<p>No solution. Absolute value cannot be less than a negative number.</p>`; return;
+            }
+            const lower = h - c;
+            const upper = h + c;
+             solutionDiv.innerHTML = `
+                <p>1. Start with: <span class="latex">|x - ${h}| < ${c}</span></p>
+                <p>2. This is an 'AND' inequality, rewrite as:</p>
+                <p class="ml-4"><span class="latex">-${c} < x - ${h} < ${c}</span></p>
+                <p>3. Add ${h} to all parts:</p>
+                <p class="ml-4"><span class="latex">-${c} + ${h} < x < ${c} + ${h}</span></p>
+                <p>Final Solution: <span class="font-bold latex">${lower.toFixed(2)} < x < ${upper.toFixed(2)}</span></p>
+            `;
+        });
+        
+         document.getElementById('solveCombo1Btn').addEventListener('click', () => {
+            const c = parseFloat(document.getElementById('combo1Val').value);
+            const solutionDiv = document.getElementById('combo1Solution');
+            if (isNaN(c)) { solutionDiv.innerHTML = `<p class="text-red-600">Invalid input.</p>`; return; }
+            const b_c = Math.pow(2, c);
+            solutionDiv.innerHTML = `
+                <p>1. Start with: <span class="latex">log<sub>2</sub>|x| = ${c}</span></p>
+                <p>2. Domain check: Argument <span class="latex">|x| > 0</span>, so <span class="latex">x ≠ 0</span>.</p>
+                <p>3. Convert to exponential form: <span class="latex">|x| = 2<sup>${c}</sup> = ${b_c.toFixed(2)}</span></p>
+                <p>4. Solve absolute value: <span class="latex">x = ${b_c.toFixed(2)}</span> or <span class="latex">x = -${b_c.toFixed(2)}</span></p>
+                <p>5. Verify against domain: Both solutions are non-zero.</p>
+                <p>Final Solutions: <span class="font-bold latex">x = ±${b_c.toFixed(2)}</span></p>
+            `;
+        });
+
+        document.getElementById('solveCombo2Btn').addEventListener('click', () => {
+            const c = parseFloat(document.getElementById('combo2Val').value);
+            const solutionDiv = document.getElementById('combo2Solution');
+            if (isNaN(c) || c < 0) { solutionDiv.innerHTML = `<p class="text-red-600">Invalid input. c must be non-negative.</p>`; return; }
+            const sol1 = Math.exp(c);
+            const sol2 = Math.exp(-c);
+            solutionDiv.innerHTML = `
+                <p>1. Start with: <span class="latex">|ln(x)| = ${c}</span></p>
+                <p>2. Domain check: Argument <span class="latex">x > 0</span>.</p>
+                <p>3. Split into two cases: <span class="latex">ln(x) = ${c}</span> or <span class="latex">ln(x) = -${c}</span></p>
+                <p>4. Solve each case:</p>
+                <p class="ml-4">a) <span class="latex">x = e<sup>${c}</sup> ≈ ${sol1.toFixed(4)}</span></p>
+                <p class="ml-4">b) <span class="latex">x = e<sup>-${c}</sup> ≈ ${sol2.toFixed(4)}</span></p>
+                <p>5. Verify against domain: Both solutions are positive.</p>
+                <p>Final Solutions: <span class="font-bold latex">x ≈ ${sol1.toFixed(4)}</span> or <span class="font-bold latex">x ≈ ${sol2.toFixed(4)}</span></p>
+            `;
+        });
+    }
+
+    function initTheme() {
+        const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
+        const currentTheme = localStorage.getItem('theme');
+
+        if (currentTheme === 'dark' || (currentTheme === null && prefersDarkScheme.matches)) {
+            document.body.classList.add('dark');
+            document.getElementById('themeIcon').textContent = '🌙';
+            document.getElementById('themeIconMobile').textContent = '🌙';
+        } else {
+            document.body.classList.remove('dark');
+            document.getElementById('themeIcon').textContent = '☀️';
+            document.getElementById('themeIconMobile').textContent = '☀️';
+        }
+        updateChartColors();
+    }
+
+    function toggleTheme() {
+        if (document.body.classList.contains('dark')) {
+            document.body.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+            document.getElementById('themeIcon').textContent = '☀️';
+            document.getElementById('themeIconMobile').textContent = '☀️';
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+            document.getElementById('themeIcon').textContent = '🌙';
+            document.getElementById('themeIconMobile').textContent = '🌙';
+        }
+        updateChartColors();
+    }
+
+    function updateChartColors() {
+        const textColor = getComputedStyle(document.body).color;
+        const gridColor = document.body.classList.contains('dark') ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)';
+
+        if (logChart) {
+            logChart.options.scales.x.title.color = textColor;
+            logChart.options.scales.y.title.color = textColor;
+            logChart.options.scales.x.ticks.color = textColor;
+            logChart.options.scales.y.ticks.color = textColor;
+            logChart.options.scales.x.grid.color = gridColor;
+            logChart.options.scales.y.grid.color = gridColor;
+            logChart.options.plugins.legend.labels.color = textColor;
+            logChart.update();
+        }
+        if (modChart) {
+            modChart.options.scales.x.title.color = textColor;
+            modChart.options.scales.y.title.color = textColor;
+            modChart.options.scales.x.ticks.color = textColor;
+            modChart.options.scales.y.ticks.color = textColor;
+            modChart.options.scales.x.grid.color = gridColor;
+            modChart.options.scales.y.grid.color = gridColor;
+            modChart.options.plugins.legend.labels.color = textColor;
+            modChart.update();
+        }
+    }
+
+    async function solveAIProblem() {
+        const problemInput = document.getElementById('aiProblemInput').value.trim();
+        const solutionOutput = document.getElementById('aiSolutionOutput');
+        const solveButton = document.getElementById('solveAIProblemBtn');
+        const aiSolveText = document.getElementById('aiSolveText');
+        const aiLoader = document.getElementById('aiLoader');
+
+        if (!problemInput) {
+            solutionOutput.innerHTML = `<p class="text-red-600 dark:text-red-400">Please enter a problem to solve.</p>`;
+            return;
+        }
+
+        solveButton.disabled = true;
+        aiSolveText.textContent = 'Solving...';
+        aiLoader.classList.remove('hidden');
+        solutionOutput.textContent = 'Thinking...';
+
+        try {
+            let chatHistory = [];
+            const prompt = `Solve the following mathematical problem step-by-step, focusing on logarithmic and modulus (absolute value) functions and inequalities. Explain each step clearly. If it's an inequality, provide the solution in interval notation or as an inequality.
+
+Problem: ${problemInput}`;
+
+            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+            const payload = { contents: chatHistory };
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+
+            if (result.candidates && result.candidates.length > 0 &&
+                result.candidates[0].content && result.candidates[0].content.parts &&
+                result.candidates[0].content.parts.length > 0) {
+                const text = result.candidates[0].content.parts[0].text;
+                solutionOutput.textContent = text;
+            } else {
+                solutionOutput.innerHTML = `<p class="text-red-600 dark:text-red-400">Error: Could not get a valid response from the AI. Please try again or rephrase your problem.</p>`;
+            }
+        } catch (error) {
+            console.error('AI Solver Error:', error);
+            solutionOutput.innerHTML = `<p class="text-red-600 dark:text-red-400">An error occurred while connecting to the AI. Please check your network connection or try again later.</p>`;
+        } finally {
+            solveButton.disabled = false;
+            aiSolveText.textContent = 'Solve Problem';
+            aiLoader.classList.add('hidden');
+        }
+    }
+
+
+    initTheme();
+    initLogChart();
+    initModChart();
+    setupNav();
+    setupLogPropertyTabs();
+    populateAppCards();
+    setupSolvers();
+
+    document.getElementById('logBase').addEventListener('input', (e) => updateLogChart(e.target.value));
+    document.getElementById('toggleInverse').addEventListener('change', (e) => {
+        logChart.data.datasets[1].hidden = !e.target.checked;
+        logChart.data.datasets[2].hidden = !e.target.checked;
+        logChart.update();
+    });
+
+    const modInputs = ['modA', 'modH', 'modK'];
+    modInputs.forEach(id => {
+        document.getElementById(id).addEventListener('input', () => {
+            const a = document.getElementById('modA').value;
+            const h = document.getElementById('modH').value;
+            const k = document.getElementById('modK').value;
+            updateModChart(a, h, k);
+        });
+    });
+
+    document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+    document.getElementById('themeToggleMobile').addEventListener('click', toggleTheme);
+    document.getElementById('solveAIProblemBtn').addEventListener('click', solveAIProblem);
+});
+</script>
+</body>
+</html>
